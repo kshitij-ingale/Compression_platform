@@ -1,34 +1,20 @@
- #!/usr/bin/env 
-
-# import warnings
-# warnings.simplefilter(action='ignore', category=FutureWarning)
-
+#!/usr/bin/python3
 import tensorflow as tf
 import numpy as np
 import pandas as pd
 import time, os, sys
 import argparse
-# import cv2
-# import h5py
-# from PIL import Image
 
-# # User-defined
-# from network import Network
-# from utils import Utils
-# from data import Data
-# from model import Model
-# from config import config_train, directories
+# User-defined
+from network import Network
+from utils import Utils
+from data import Data
+from model import Model
+from config import config_train, directories
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
-def generate_dataset(path):
-	
-    # im = Image.open("bride.jpg")
-    images_list=os.listdir(path)
-    
-    train = images_list[:int(config_train.train_fraction*len(images))]
-    test = images_list[int(config_train.train_fraction*len(images)):]
-    
+def preprocess(path):
 
 
 
@@ -39,32 +25,27 @@ def train(config, args):
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
 
     # Load data
-    print('Training on dataset')
-    # if config.use_conditional_GAN:
-    #     print('Using conditional GAN')
-    #     paths, semantic_map_paths = Data.load_dataframe(directories.train, load_semantic_maps=True)
-    #     test_paths, test_semantic_map_paths = Data.load_dataframe(directories.test, load_semantic_maps=True)
-    # else:
-    #     paths = Data.load_dataframe(directories.train)
-    #     test_paths = Data.load_dataframe(directories.test)
-    
-    paths = Data.load_dataframe(directories.train)
-    test_paths = Data.load_dataframe(directories.test)
+    print('Training on dataset', args.dataset)
+    if config.use_conditional_GAN:
+        print('Using conditional GAN')
+        paths, semantic_map_paths = Data.load_dataframe(directories.train, load_semantic_maps=True)
+        test_paths, test_semantic_map_paths = Data.load_dataframe(directories.test, load_semantic_maps=True)
+    else:
+        paths = Data.load_dataframe(directories.train)
+        test_paths = Data.load_dataframe(directories.test)
 
     # Build graph
-    gan = Model(config, paths, name=args.name)
+    gan = Model(config, paths, name=args.name, dataset=args.dataset)
     saver = tf.train.Saver()
 
-    # if config.use_conditional_GAN:
-    #     feed_dict_test_init = {gan.test_path_placeholder: test_paths, 
-    #                            gan.test_semantic_map_path_placeholder: test_semantic_map_paths}
-    #     feed_dict_train_init = {gan.path_placeholder: paths,
-    #                             gan.semantic_map_path_placeholder: semantic_map_paths}
-    # else:
-    #     feed_dict_test_init = {gan.test_path_placeholder: test_paths}
-    #     feed_dict_train_init = {gan.path_placeholder: paths}
-    feed_dict_test_init = {gan.test_path_placeholder: test_paths}
-    feed_dict_train_init = {gan.path_placeholder: paths}
+    if config.use_conditional_GAN:
+        feed_dict_test_init = {gan.test_path_placeholder: test_paths, 
+                               gan.test_semantic_map_path_placeholder: test_semantic_map_paths}
+        feed_dict_train_init = {gan.path_placeholder: paths,
+                                gan.semantic_map_path_placeholder: semantic_map_paths}
+    else:
+        feed_dict_test_init = {gan.test_path_placeholder: test_paths}
+        feed_dict_train_init = {gan.path_placeholder: paths}
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)) as sess:
         sess.run(tf.global_variables_initializer())
@@ -132,13 +113,13 @@ def main(**kwargs):
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
     parser.add_argument("-opt", "--optimizer", default="adam", help="Selected optimizer", type=str)
     parser.add_argument("-name", "--name", default="gan-train", help="Checkpoint/Tensorboard label")
-    parser.add_argument("-dataset_loc", "--dataset_loc", help="Dataset location")
-    # parser.add_argument("-ds", "--dataset", default="cityscapes", help="choice of training dataset. Currently only supports cityscapes/ADE20k", choices=set(("cityscapes", "ADE20k")), type=str)
+    parser.add_argument("-path", "--path", default='images/dataset/', help="Preprocessing Required",type=bool)
     args = parser.parse_args()
 
     # Launch training
-    if args.dataset_loc:
-        generate_dataset(args.dataset_loc)
+    if args.path:
+    	preprocess(args.path)
+
     train(config_train, args)
 
 if __name__ == '__main__':

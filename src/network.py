@@ -1,17 +1,23 @@
-""" Modular components of computational graph
-    JTan 2018
+""" 
+Modular components for tensorflow graphs
+Code borrows from implementation provided by Justin-Tan (https://github.com/Justin-Tan/generative-compression)
+and is further modified for trianing on portraits data set with variable input image shapes
 """
 import tensorflow as tf
 from utils import Utils
+from config import image_properties
 
 class Network(object):
 
     @staticmethod
     def encoder(x, config, training, C, reuse=False, actv=tf.nn.relu, scope='image'):
         """
-        Process image x ([512,1024]) into a feature map of size W/16 x H/16 x C
-         + C:       Bottleneck depth, controls bpp
-         + Output:  Projection onto C channels, C = {2,4,8,16}
+        Process image x ([WxH]) into a feature map of size W/16 x H/16 x C
+        Args:
+        - config: Model configuration parameters
+        - C: Bottleneck depth, controls bits per pixel (bpp) in compression
+        Output:  
+        - Projection onto C channels, C = {2,4,8,16}
         """
         init = tf.contrib.layers.xavier_initializer()
         print('<------------ Building global {} generator architecture ------------>'.format(scope))
@@ -31,26 +37,34 @@ class Network(object):
             f = [60, 120, 240, 480, 960]
             x = tf.pad(x, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
             out = conv_block(x, filters=f[0], kernel_size=7, strides=1, padding='VALID', actv=actv)
-
+            print("Encoder - ", out.shape)
             out = conv_block(out, filters=f[1], kernel_size=3, strides=2, actv=actv)
+            print("Encoder - ", out.shape)
             out = conv_block(out, filters=f[2], kernel_size=3, strides=2, actv=actv)
+            print("Encoder - ", out.shape)
             out = conv_block(out, filters=f[3], kernel_size=3, strides=2, actv=actv)
+            print("Encoder - ", out.shape)
             out = conv_block(out, filters=f[4], kernel_size=3, strides=2, actv=actv)
+            print("Encoder - ", out.shape)
 
             # Project channels onto space w/ dimension C
             # Feature maps have dimension W/16 x H/16 x C
             out = tf.pad(out, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
             feature_map = conv_block(out, filters=C, kernel_size=3, strides=1, padding='VALID', actv=actv)
-            
+            print("Encoder - ", feature_map.shape)
             return feature_map
 
 
     @staticmethod
     def quantizer(w, config, reuse=False, temperature=1, L=5, scope='image'):
         """
-        Quantize feature map over L centers to obtain discrete $\hat{w}$
-         + Centers: {-2,-1,0,1,2}
-         + TODO:    Toggle learnable centers?
+        Quantize feature map over L centers to obtain discrete representation using Voronoi tesselation
+        Args:
+        - w: Feature map from encoder
+        - config: Model configuration parameters
+        - L: number of centers for quantization
+        Ouptut:
+        - Quantized feature map 
         """
         with tf.variable_scope('quantizer_{}'.format(scope, reuse=reuse)):
 
@@ -72,11 +86,15 @@ class Network(object):
     @staticmethod
     def decoder(w_bar, config, training, C, reuse=False, actv=tf.nn.relu, channel_upsample=960):
         """
-        Attempt to reconstruct the image from the quantized representation w_bar.
-        Generated image should be consistent with the true image distribution while
-        recovering the specific encoded image
-        + C:        Bottleneck depth, controls bpp - last dimension of encoder output
-        + TODO:     Concatenate quantized w_bar with noise sampled from prior
+        Decode quantized feature map to reconstruct image consistent with encoder input
+        Args:
+        - w_bar: Quantized feature map
+        - config: Model configuration
+        - C: Bottleneck neck depts, controls compression (bpp) 
+        - actv: Activation function for different layers
+        - channel_upsample: Channels to uspample. Mirrors encoder
+        Ouptput:
+        - Reconstructed image x_hat
         """
         init = tf.contrib.layers.xavier_initializer()
 
@@ -119,8 +137,9 @@ class Network(object):
         # upsampled = tf.einsum('ijkl,lm->ijkm', w_bar, W_pc)
         with tf.variable_scope('decoder', reuse=reuse):
             w_bar = tf.pad(w_bar, [[0, 0], [1, 1], [1, 1], [0, 0]], 'REFLECT')
+            print("Decoder - ", w_bar.shape)
             upsampled = Utils.conv_block(w_bar, filters=960, kernel_size=3, strides=1, padding='VALID', actv=actv)
-            
+
             # Process upsampled feature map with residual blocks
             res = residual_block(upsampled, 960, actv=actv)
             res = residual_block(res, 960, actv=actv)
@@ -134,15 +153,19 @@ class Network(object):
 
             # Upsample to original dimensions - mirror decoder
             f = [480, 240, 120, 60]
-
+            print("Decoder - ", res.shape)
             ups = upsample_block(res, f[0], 3, strides=[2,2], padding='same')
+            print("Decoder - ", ups.shape)
             ups = upsample_block(ups, f[1], 3, strides=[2,2], padding='same')
+            print("Decoder - ", ups.shape)
             ups = upsample_block(ups, f[2], 3, strides=[2,2], padding='same')
+            print("Decoder - ", ups.shape)
             ups = upsample_block(ups, f[3], 3, strides=[2,2], padding='same')
-            
-            ups = tf.pad(ups, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
-            ups = tf.layers.conv2d(ups, 3, kernel_size=7, strides=1, padding='VALID')
+            print("Decoder - ", ups.shape)
 
+            ups = tf.pad(ups, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
+            ups = tf.layers.conv2d(ups, image_properties.depth, kernel_size=7, strides=1, padding='VALID')
+            print("Decoder - ", ups.shape)
             out = tf.nn.tanh(ups)
 
             return out
@@ -150,6 +173,16 @@ class Network(object):
 
     @staticmethod
     def discriminator(x, config, training, reuse=False, actv=tf.nn.leaky_relu, use_sigmoid=False, ksize=4):
+        """
+        Discriminator network should differentiate between real and generated(reconstructed) images x[WxH] to train 
+        Encoder/decoder pair
+        Args:
+        - config: Model configuration
+        - actv: Activation function for discriminator units
+        - ksize: Kernel size for convolutional layers
+        Output:
+        Image classification as either real or generated
+        """
         # x is either generator output G(z) or drawn from the real data distribution
         # Patch-GAN discriminator based on arXiv 1711.11585
         # bn_kwargs = {'center':True, 'scale':True, 'training':training, 'fused':True, 'renorm':False}
@@ -223,38 +256,46 @@ class Network(object):
     def dcgan_generator(z, config, training, C, reuse=False, actv=tf.nn.relu, kernel_size=5, upsample_dim=256):
         """
         Upsample noise to concatenate with quantized representation w_bar.
-        + z:    Drawn from latent distribution - [batch_size, noise_dim]
-        + C:    Bottleneck depth, controls bpp - last dimension of encoder output
+        Args:
+        - z: Randomly drawn from latent distribution - [batch_size, noise_dim]
+        - C: Bottleneck depth, controls bpp - last dimension of encoder output
+        Output
+        Noise distribution concatenated into quantized feature map
+        TODO:
+        - Needs to be generalized for use with arbitrary image sizes
+        - As of yet is dead code for very low res images
         """
         init =  tf.contrib.layers.xavier_initializer()
         kwargs = {'center':True, 'scale':True, 'training':training, 'fused':True, 'renorm':False}
         with tf.variable_scope('noise_generator', reuse=reuse):
-
+            
             # [batch_size, 4, 8, dim]
             with tf.variable_scope('fc1', reuse=reuse):
-                h2 = tf.layers.dense(z, units=4 * 8 * upsample_dim, activation=actv, kernel_initializer=init)  # cifar-10
+                #Lomnitz
+                #h2 = tf.layers.dense(z, units=4 * 8 * upsample_dim, activation=actv, kernel_initializer=init)  # cifar-10
+                h2 = tf.layers.dense(z, units=4 * 4 * upsample_dim, activation=actv, kernel_initializer=init)  # cifar-10
                 h2 = tf.layers.batch_normalization(h2, **kwargs)
-                h2 = tf.reshape(h2, shape=[-1, 4, 8, upsample_dim])
-
+                h2 = tf.reshape(h2, shape=[-1, 4, 4, upsample_dim])
+                print('Noise - ', h2.shape)
             # [batch_size, 8, 16, dim/2]
             with tf.variable_scope('upsample1', reuse=reuse):
                 up1 = tf.layers.conv2d_transpose(h2, upsample_dim//2, kernel_size=kernel_size, strides=2, padding='same', activation=actv)
                 up1 = tf.layers.batch_normalization(up1, **kwargs)
-
+                print('Noise - ', up1.shape)
             # [batch_size, 16, 32, dim/4]
             with tf.variable_scope('upsample2', reuse=reuse):
                 up2 = tf.layers.conv2d_transpose(up1, upsample_dim//4, kernel_size=kernel_size, strides=2, padding='same', activation=actv)
                 up2 = tf.layers.batch_normalization(up2, **kwargs)
-            
+                print('Noise - ', up2.shape)
             # [batch_size, 32, 64, dim/8]
             with tf.variable_scope('upsample3', reuse=reuse):
                 up3 = tf.layers.conv2d_transpose(up2, upsample_dim//8, kernel_size=kernel_size, strides=2, padding='same', activation=actv)  # cifar-10
                 up3 = tf.layers.batch_normalization(up3, **kwargs)
-
+                print('Noise - ', up3.shape)
             with tf.variable_scope('conv_out', reuse=reuse):
                 out = tf.pad(up3, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
                 out = tf.layers.conv2d(out, C, kernel_size=7, strides=1, padding='VALID')
-
+                print('Noise - ', out.shape)
         return out
 
     @staticmethod

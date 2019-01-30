@@ -1,4 +1,10 @@
 #!/usr/bin/python3
+"""
+Module loads and builds the full model using the building blocks loaded from network.py
+Code borrows from implementation provided by Justin-Tan (https://github.com/Justin-Tan/generative-compression)
+and is further modified for trianing on portraits data set with variable input image shapes
+"""
+
     
 import tensorflow as tf
 import numpy as np
@@ -12,6 +18,19 @@ from utils import Utils
 class Model():
     def __init__(self, config, paths, dataset, name='gan_compression', evaluate=False):
 
+        """
+        Model init, builds full model from network components
+        Args:
+        - config: Configuation for model archicture, dataset, etc.
+        - paths: Paths to data location (train/validation/test)
+        - dataset: Dataset name
+        - name: Full model name
+        - evaluate: Switch for training/inference
+        Returns
+        - evauluate = True: model will return encoder/decoder pair
+        - evaluate = False: model will return encoder/decode pair as well as discriminator
+        """
+
         # Build the computational graph
 
         print('Building computational graph ...')
@@ -24,28 +43,23 @@ class Model():
         self.path_placeholder = tf.placeholder(paths.dtype, paths.shape)
         self.test_path_placeholder = tf.placeholder(paths.dtype)            
 
-        # self.semantic_map_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
-        # self.test_semantic_map_path_placeholder = tf.placeholder(paths.dtype)  
+        self.semantic_map_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
+        self.test_semantic_map_path_placeholder = tf.placeholder(paths.dtype)  
 
-        # train_dataset = Data.load_dataset(self.path_placeholder,
-        #                                   config.batch_size,
-        #                                   augment=False,
-        #                                   training_dataset=dataset,
-        #                                   use_conditional_GAN=config.use_conditional_GAN,
-        #                                   semantic_map_paths=self.semantic_map_path_placeholder)
-
-        # test_dataset = Data.load_dataset(self.test_path_placeholder,
-        #                                  config.batch_size,
-        #                                  augment=False,
-        #                                  training_dataset=dataset,
-        #                                  use_conditional_GAN=config.use_conditional_GAN,
-        #                                  semantic_map_paths=self.test_semantic_map_path_placeholder,
-        #                                  test=True)
-
-        train_dataset = Data.load_dataset(self.path_placeholder, config.batch_size)
+        train_dataset = Data.load_dataset(self.path_placeholder,
+                                          config.batch_size,
+                                          augment=False,
+                                          training_dataset=dataset,
+                                          use_conditional_GAN=config.use_conditional_GAN,
+                                          semantic_map_paths=self.semantic_map_path_placeholder)
 
         test_dataset = Data.load_dataset(self.test_path_placeholder,
-                                         config.batch_size, test=True)
+                                         config.batch_size,
+                                         augment=False,
+                                         training_dataset=dataset,
+                                         use_conditional_GAN=config.use_conditional_GAN,
+                                         semantic_map_paths=self.test_semantic_map_path_placeholder,
+                                         test=True)
 
         self.iterator = tf.data.Iterator.from_string_handle(self.handle,
                                                                     train_dataset.output_types,
@@ -54,25 +68,23 @@ class Model():
         self.train_iterator = train_dataset.make_initializable_iterator()
         self.test_iterator = test_dataset.make_initializable_iterator()
 
-        # if config.use_conditional_GAN:
-        #     self.example, self.semantic_map = self.iterator.get_next()
-        # else:
-        #     self.example = self.iterator.get_next()
-
-        self.example = self.iterator.get_next()
+        if config.use_conditional_GAN:
+            self.example, self.semantic_map = self.iterator.get_next()
+        else:
+            self.example = self.iterator.get_next()
 
         # Global generator: Encode -> quantize -> reconstruct
         # =======================================================================================================>>>
         with tf.variable_scope('generator'):
             self.feature_map = Network.encoder(self.example, config, self.training_phase, config.channel_bottleneck)
             self.w_hat = Network.quantizer(self.feature_map, config)
+            
+            if config.use_conditional_GAN:
+                self.semantic_feature_map = Network.encoder(self.semantic_map, config, self.training_phase, 
+                    config.channel_bottleneck, scope='semantic_map')
+                self.w_hat_semantic = Network.quantizer(self.semantic_feature_map, config, scope='semantic_map')
 
-            # if config.use_conditional_GAN:
-            #     self.semantic_feature_map = Network.encoder(self.semantic_map, config, self.training_phase, 
-            #         config.channel_bottleneck, scope='semantic_map')
-            #     self.w_hat_semantic = Network.quantizer(self.semantic_feature_map, config, scope='semantic_map')
-
-            #     self.w_hat = tf.concat([self.w_hat, self.w_hat_semantic], axis=-1)
+                self.w_hat = tf.concat([self.w_hat, self.w_hat_semantic], axis=-1)
 
             if config.sample_noise is True:
                 print('Sampling noise...')
@@ -96,11 +108,10 @@ class Model():
         # Pass generated, real images to discriminator
         # =======================================================================================================>>>
 
-        # if config.use_conditional_GAN:
-        #     # Model conditional distribution
-        #     self.example = tf.concat([self.example, self.semantic_map], axis=-1)
-        #     self.reconstruction = tf.concat([self.reconstruction, self.semantic_map], axis=-1)
-
+        if config.use_conditional_GAN:
+            # Model conditional distribution
+            self.example = tf.concat([self.example, self.semantic_map], axis=-1)
+            self.reconstruction = tf.concat([self.reconstruction, self.semantic_map], axis=-1)
         if config.multiscale:
             D_x, D_x2, D_x4, *Dk_x = Network.multiscale_discriminator(self.example, config, self.training_phase, 
                 use_sigmoid=config.use_vanilla_GAN, mode='real')
@@ -147,8 +158,8 @@ class Model():
 
         theta_G = Utils.scope_variables('generator')
         theta_D = Utils.scope_variables('discriminator')
-        # print('Generator parameters:', theta_G)
-        # print('Discriminator parameters:', theta_D)
+        print('Generator parameters:', theta_G)
+        print('Discriminator parameters:', theta_D)
         G_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='generator')
         D_update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope='discriminator')
 

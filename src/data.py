@@ -2,81 +2,86 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
-from config import directories, image_attributes
+from config import directories, image_properties
 
 class Data(object):
 
     @staticmethod
     def load_dataframe(filename, load_semantic_maps=False):
         df = pd.read_hdf(filename, key='df').sample(frac=1).reset_index(drop=True)
-        return df['path'].values
-        # if load_semantic_maps:
-        #     return df['path'].values, df['semantic_map_path'].values
-        # else:
-        #     return df['path'].values
+
+        if load_semantic_maps:
+            return df['path'].values, df['semantic_map_path'].values
+        else:
+            return df['path'].values
 
     @staticmethod
-    # def load_dataset(image_paths, batch_size, test=False, augment=False, downsample=False,
-    #         training_dataset='cityscapes', use_conditional_GAN=False, **kwargs):
-    def load_dataset(image_paths, batch_size, test=False, augment=False, downsample=False, **kwargs):
+    def load_dataset(image_paths, batch_size, test=False, augment=False, downsample=False,
+            training_dataset='cityscapes', use_conditional_GAN=False, **kwargs):
 
-        # def _augment(image):
-        #     # On-the-fly data augmentation
-        #     image = tf.image.random_brightness(image, max_delta=0.1)
-        #     image = tf.image.random_contrast(image, 0.5, 1.5)
-        #     image = tf.image.random_flip_left_right(image)
-            # return image
+        def _augment(image):
+            # On-the-fly data augmentation
+            image = tf.image.random_brightness(image, max_delta=0.1)
+            image = tf.image.random_contrast(image, 0.5, 1.5)
+            image = tf.image.random_flip_left_right(image)
 
-        # def _parser(image_path, semantic_map_path=None):
-        def _parser(image_path):
+            return image
 
-            # def _aspect_preserving_width_resize(image, width=512):
-            #     height_i = tf.shape(image)[0]
-            #     # width_i = tf.shape(image)[1]
-            #     # ratio = tf.to_float(width_i) / tf.to_float(height_i)
-            #     # new_height = tf.to_int32(tf.to_float(height_i) / ratio)
-            #     new_height = height_i - tf.floormod(height_i, 16)
-            #     return tf.image.resize_image_with_crop_or_pad(image, new_height, width)
+        def _parser(image_path, semantic_map_path=None):
+
+            def _aspect_preserving_width_resize(image, width=512):
+                height_i = tf.shape(image)[0]
+                # width_i = tf.shape(image)[1]
+                # ratio = tf.to_float(width_i) / tf.to_float(height_i)
+                # new_height = tf.to_int32(tf.to_float(height_i) / ratio)
+                new_height = height_i - tf.floormod(height_i, 16)
+                return tf.image.resize_image_with_crop_or_pad(image, new_height, width)
 
             def _image_decoder(path):
-                # im = tf.image.decode_png(tf.read_file(path), channels=3)
-                im = tf.image.decode_image(tf.read_file(path), channels=3)
+                if training_dataset == 'faces':
+                    im = tf.image.decode_jpeg(tf.read_file(path), channels=image_properties.depth)
+                else:
+                    im = tf.image.decode_png(tf.read_file(path), channels=3)
                 im = tf.image.convert_image_dtype(im, dtype=tf.float32)
                 return 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
                     
             image = _image_decoder(image_path)
-############################################################################################################################################
-            # #### Scale image ####
-            # image.set_shape([image_attributes.height,image_attributes.width,image_attributes.depth])
-############################################################################################################################################
-            # if use_conditional_GAN:
-            #     # Semantic map only enabled for cityscapes
-            #     semantic_map = _image_decoder(semantic_map_path)           
 
-            # if training_dataset == 'ADE20k':
-            #     image = _aspect_preserving_width_resize(image)
-            #     if use_conditional_GAN:
-            #         semantic_map = _aspect_preserving_width_resize(semantic_map)
-            #     # im.set_shape([None,512,3])
+            # Explicitly set the shape if you want a sanity check
+            # or if you are using your own custom dataset, otherwise
+            # the model is shape-agnostic as it is fully convolutional
 
-            # if use_conditional_GAN:
-            #     return image, semantic_map
-            # else:
-            #     return image
-            return image
+            # im.set_shape([512,1024,3])  # downscaled cityscapes
 
-        print('Training on the dataset')
+            if use_conditional_GAN:
+                # Semantic map only enabled for cityscapes
+                semantic_map = _image_decoder(semantic_map_path)           
 
-        # if use_conditional_GAN:
-        #     dataset = tf.data.Dataset.from_tensor_slices((image_paths, kwargs['semantic_map_paths']))
-        # else:
-        #     dataset = tf.data.Dataset.from_tensor_slices(image_paths)
+            if training_dataset == 'ADE20k':
+                image = _aspect_preserving_width_resize(image)
+                if use_conditional_GAN:
+                    semantic_map = _aspect_preserving_width_resize(semantic_map)
+                # im.set_shape([None,512,3])
 
-        dataset = tf.data.Dataset.from_tensor_slices(image_paths)
+            if training_dataset == 'faces':
+                image.set_shape([image_properties.height,image_properties.width,image_properties.depth])
+                #image = _aspect_preserving_width_resize(image)
 
-        dataset = dataset.shuffle(buffer_size=8)
+            if use_conditional_GAN:
+                return image, semantic_map
+            else:
+                return image
+            
+
+        print('Training on', training_dataset)
+
+        if use_conditional_GAN:
+            dataset = tf.data.Dataset.from_tensor_slices((image_paths, kwargs['semantic_map_paths']))
+        else:
+            dataset = tf.data.Dataset.from_tensor_slices(image_paths)
+
         dataset = dataset.map(_parser)
-        dataset = dataset.cache()
+        dataset = dataset.shuffle(buffer_size=8)
         dataset = dataset.batch(batch_size)
 
         if test:
