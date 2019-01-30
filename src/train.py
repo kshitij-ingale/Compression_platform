@@ -16,6 +16,18 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 
 def preprocess(path):
 
+    """
+    Implement Preprocessing
+    """
+    abs_path = os.path.abspath(path)+'/'
+    file_names = os.listdir(path)
+    file_loc = [abs_path + x for x in file_names]
+    train = pd.DataFrame({'path':file_loc[:int(len(file_names)*config_train.train_fraction)]})
+    test = pd.DataFrame({'path':file_loc[int(len(file_names)*config_train.train_fraction):]})
+    train.to_hdf(directories.train, 'df', table=True, mode='a')
+    test.to_hdf(directories.test, 'df', table=True, mode='a')
+
+
 
 
 def train(config, args):
@@ -25,27 +37,31 @@ def train(config, args):
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
 
     # Load data
-    print('Training on dataset', args.dataset)
-    if config.use_conditional_GAN:
-        print('Using conditional GAN')
-        paths, semantic_map_paths = Data.load_dataframe(directories.train, load_semantic_maps=True)
-        test_paths, test_semantic_map_paths = Data.load_dataframe(directories.test, load_semantic_maps=True)
-    else:
-        paths = Data.load_dataframe(directories.train)
-        test_paths = Data.load_dataframe(directories.test)
+    print('Training on dataset')
+    # if config.use_conditional_GAN:
+    #     print('Using conditional GAN')
+    #     paths, semantic_map_paths = Data.load_dataframe(directories.train, load_semantic_maps=True)
+    #     test_paths, test_semantic_map_paths = Data.load_dataframe(directories.test, load_semantic_maps=True)
+    # else:
+    #     paths = Data.load_dataframe(directories.train)
+    #     test_paths = Data.load_dataframe(directories.test)
+    paths = Data.load_dataframe(directories.train)
+    test_paths = Data.load_dataframe(directories.test)
 
     # Build graph
-    gan = Model(config, paths, name=args.name, dataset=args.dataset)
+    gan = Model(config, paths, name=args.name)
     saver = tf.train.Saver()
 
-    if config.use_conditional_GAN:
-        feed_dict_test_init = {gan.test_path_placeholder: test_paths, 
-                               gan.test_semantic_map_path_placeholder: test_semantic_map_paths}
-        feed_dict_train_init = {gan.path_placeholder: paths,
-                                gan.semantic_map_path_placeholder: semantic_map_paths}
-    else:
-        feed_dict_test_init = {gan.test_path_placeholder: test_paths}
-        feed_dict_train_init = {gan.path_placeholder: paths}
+    # if config.use_conditional_GAN:
+    #     feed_dict_test_init = {gan.test_path_placeholder: test_paths, 
+    #                            gan.test_semantic_map_path_placeholder: test_semantic_map_paths}
+    #     feed_dict_train_init = {gan.path_placeholder: paths,
+    #                             gan.semantic_map_path_placeholder: semantic_map_paths}
+    # else:
+    #     feed_dict_test_init = {gan.test_path_placeholder: test_paths}
+    #     feed_dict_train_init = {gan.path_placeholder: paths}
+    feed_dict_test_init = {gan.test_path_placeholder: test_paths}
+    feed_dict_train_init = {gan.path_placeholder: paths}
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)) as sess:
         sess.run(tf.global_variables_initializer())
@@ -76,7 +92,6 @@ def train(config, args):
             while True:
                 try:
                     # Update generator
-                    # for _ in range(8):
                     feed_dict = {gan.training_phase: True, gan.handle: train_handle}
                     sess.run(gan.G_train_op, feed_dict=feed_dict)
 
@@ -87,9 +102,7 @@ def train(config, args):
                         G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle,
                             start_time, epoch, args.name, G_loss_best, D_loss_best)
                         Utils.single_plot(epoch, step, sess, gan, train_handle, args.name, config)
-                        # for _ in range(4):
-                        #    sess.run(gan.G_train_op, feed_dict=feed_dict)
-
+                        
 
                 except tf.errors.OutOfRangeError:
                     print('End of epoch!')
@@ -113,12 +126,12 @@ def main(**kwargs):
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
     parser.add_argument("-opt", "--optimizer", default="adam", help="Selected optimizer", type=str)
     parser.add_argument("-name", "--name", default="gan-train", help="Checkpoint/Tensorboard label")
-    parser.add_argument("-path", "--path", default='images/dataset/', help="Preprocessing Required",type=bool)
+    parser.add_argument("-path", "--path", default=None, help="Preprocessing Required",type=str)
     args = parser.parse_args()
 
     # Launch training
     if args.path:
-    	preprocess(args.path)
+        preprocess(args.path)
 
     train(config_train, args)
 

@@ -7,6 +7,7 @@ class image_properties(object):
     compressed_dims = [1, 32, 32, 8]
 
 class config_train(object):
+    train_fraction = 0.8
     mode = 'gan-train'
     num_epochs = 10
     batch_size = 5
@@ -79,5 +80,5 @@ class directories(object):
     tensorboard = 'tensorboard'
     checkpoints = 'checkpoints'
     checkpoints_best = 'checkpoints/best'
-    samples = 'samples/'
+    samples = 'output/'
 

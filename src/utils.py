@@ -128,7 +128,7 @@ class Utils(object):
                 #f.savefig(name+'.jpg', format = 'jpg', dpi=720, bbox_inches='tight', pad_inches=0)
                 plt.imsave(name+'.jpg',np.asarray(im))
                 plt.gcf().clear()
-                plt.close(f)
+            plt.close(f)
         comparison = np.hstack(images)
         f = plt.figure()
         plt.imshow(comparison)
