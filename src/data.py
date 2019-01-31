@@ -22,13 +22,13 @@ class Data(object):
 
     def load_dataset(image_paths, batch_size, test=False, augment=False, downsample=False, **kwargs):
 
-        def _augment(image):
-            # On-the-fly data augmentation
-            image = tf.image.random_brightness(image, max_delta=0.1)
-            image = tf.image.random_contrast(image, 0.5, 1.5)
-            image = tf.image.random_flip_left_right(image)
+        # def _augment(image):
+        #     # On-the-fly data augmentation
+        #     image = tf.image.random_brightness(image, max_delta=0.1)
+        #     image = tf.image.random_contrast(image, 0.5, 1.5)
+        #     image = tf.image.random_flip_left_right(image)
 
-            return image
+        #     return image
 
         def _parser(image_path, semantic_map_path=None):
 
