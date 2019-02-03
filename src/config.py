@@ -22,6 +22,8 @@ class config_train(object):
     kernel_size = 3
     diagnostic_steps = 30
 
+    perceptual_coeff = 0.1
+
     # WGAN
     gradient_penalty = True
     lambda_gp = 10
@@ -55,6 +57,8 @@ class config_test(object):
     kernel_size = 3
     diagnostic_steps = 256
 
+    perceptual_coeff = 0.1
+
     # WGAN
     gradient_penalty = True
     lambda_gp = 10
@@ -74,9 +78,9 @@ class config_test(object):
     use_conditional_GAN = False
 
 class directories(object):
-    train = 'data/faces_paths_train.d5'
-    test = 'data/faces_paths_test.d5'
-    val = 'data/faces_paths_validation.d5'
+    train = 'data/paths_train.d5'
+    test = 'data/paths_test.d5'
+    val = 'data/paths_validation.d5'
     tensorboard = 'tensorboard'
     checkpoints = 'checkpoints'
     checkpoints_best = 'checkpoints/best'

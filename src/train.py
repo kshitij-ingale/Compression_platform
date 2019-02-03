@@ -98,6 +98,9 @@ def train(config, args):
                     summary,_=sess.run([gan.merge_op,gan.G_train_op], feed_dict=feed_dict)
                     gan.train_writer.add_summary(summary, epoch)
 
+                    # summary,_=sess.run(gan.G_train_op, feed_dict=feed_dict)
+                    # summaries = sess.run(gan.loss_summaries, feed_dict={gan.tf_loss_ph: gloss})
+                    # gan.train_writer.add_summary(summaries, step)
                     # Update discriminator 
                     summary,step, _ = sess.run([gan.merge_op,gan.D_global_step, gan.D_train_op], feed_dict=feed_dict)
                     gan.train_writer.add_summary(summary, epoch)

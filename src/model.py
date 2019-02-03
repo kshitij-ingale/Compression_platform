@@ -10,9 +10,6 @@ import tensorflow as tf
 import numpy as np
 import glob, time, os
 
-
-
-
 from network import Network
 from data import Data
 from config import directories
@@ -20,7 +17,6 @@ from utils import Utils
 
 from perceptual import Perceptual
 
-# from perceptual import 
 
 class Model():
     def __init__(self, config, paths,  name='gan_compression', evaluate=False):
@@ -67,7 +63,7 @@ class Model():
         #                                  semantic_map_paths=self.test_semantic_map_path_placeholder,
         #                                  test=True)
 
-        self.perceptual_weights = 
+        # self.perceptual_weights = 
 
 
         train_dataset = Data.load_dataset(self.path_placeholder,
@@ -141,6 +137,15 @@ class Model():
          
         # Loss terms 
         # =======================================================================================================>>>
+  #       self.D_loss = tf.placeholder((tf.float32, shape=[], name='D_loss')
+  #   	self.G_loss = tf.placeholder((tf.float32, shape=[], name='G_loss')
+		# distortion_penalty = tf.placeholder((tf.float32, shape=[], name='distortion_penalty')
+		# # perceptual_loss = tf.placeholder((tf.float32, shape=None, name='perceptual_loss')
+		# if config.use_feature_matching_loss:
+		# 	feature_matching_loss = tf.placeholder((tf.float32, shape=[], name='feature_matching_loss')
+		# self.PSNR = tf.placeholder((tf.float32, shape=[], name='PSNR')
+		# self.SSIM = tf.placeholder((tf.float32, shape=[], name='SSIM')
+
         if config.use_vanilla_GAN is True:
             # Minimize JS divergence
             D_loss_real = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=D_x,
@@ -162,6 +167,11 @@ class Model():
 
         distortion_penalty = config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
         self.G_loss += distortion_penalty
+
+        # per_loss = Perceptual()
+        # percep_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
+        # self.G_loss += percep_loss
+        
 
         if config.use_feature_matching_loss:  # feature extractor for generator
             D_x_layers, D_Gz_layers = [j for i in Dk_x for j in i], [j for i in Dk_Gz for j in i]
@@ -202,6 +212,7 @@ class Model():
         tf.summary.scalar('generator_loss', self.G_loss)
         tf.summary.scalar('discriminator_loss', self.D_loss)
         tf.summary.scalar('distortion_penalty', distortion_penalty)
+        # tf.summary.scalar('perceptual_loss', perceptual_loss)
         if config.use_feature_matching_loss:
             tf.summary.scalar('feature_matching_loss', feature_matching_loss)
         psnr = tf.image.psnr(self.example,self.reconstruction,max_val=1.0)[0]
@@ -211,8 +222,8 @@ class Model():
         
         # tf.summary.scalar('G_global_step', self.G_global_step)
         # tf.summary.scalar('D_global_step', self.D_global_step)
-        # tf.summary.image('real_images', self.example[:,:,:,:3], max_outputs=4)
-        # tf.summary.image('compressed_images', self.reconstruction[:,:,:,:3], max_outputs=4)
+        tf.summary.image('real_images', self.example[:,:,:,:3], max_outputs=4)
+        tf.summary.image('compressed_images', self.reconstruction[:,:,:,:3], max_outputs=4)
         
         # if config.use_conditional_GAN:
         #     tf.summary.image('semantic_map', self.semantic_map, max_outputs=4)
