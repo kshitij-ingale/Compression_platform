@@ -14,7 +14,7 @@ from config import config_train, directories
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
-def preprocess(path):
+def generate_d5(path):
 
     """
     Implement Preprocessing
@@ -73,6 +73,7 @@ def train(config, args):
             # Continue training saved model
             saver.restore(sess, ckpt.model_checkpoint_path)
             print('{} restored.'.format(ckpt.model_checkpoint_path))
+
         else:
             if args.restore_path:
                 new_saver = tf.train.import_meta_graph('{}.meta'.format(args.restore_path))
@@ -89,18 +90,20 @@ def train(config, args):
             G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle,
                 start_time, epoch, args.name, G_loss_best, D_loss_best)
 
+            
             while True:
                 try:
                     # Update generator
                     feed_dict = {gan.training_phase: True, gan.handle: train_handle}
-                    sess.run(gan.G_train_op, feed_dict=feed_dict)
+                    summary,_=sess.run([gan.merge_op,gan.G_train_op], feed_dict=feed_dict)
+                    gan.train_writer.add_summary(summary, epoch)
 
                     # Update discriminator 
-                    step, _ = sess.run([gan.D_global_step, gan.D_train_op], feed_dict=feed_dict)
-
+                    summary,step, _ = sess.run([gan.merge_op,gan.D_global_step, gan.D_train_op], feed_dict=feed_dict)
+                    gan.train_writer.add_summary(summary, epoch)
+                    G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                     if step % config.diagnostic_steps == 0:
-                        G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle,
-                            start_time, epoch, args.name, G_loss_best, D_loss_best)
+                        # G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                         Utils.single_plot(epoch, step, sess, gan, train_handle, args.name, config)
                         
 
@@ -131,7 +134,7 @@ def main(**kwargs):
 
     # Launch training
     if args.path:
-        preprocess(args.path)
+        generate_d5(args.path)
 
     train(config_train, args)
 

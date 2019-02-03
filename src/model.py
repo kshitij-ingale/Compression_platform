@@ -10,10 +10,17 @@ import tensorflow as tf
 import numpy as np
 import glob, time, os
 
+
+
+
 from network import Network
 from data import Data
 from config import directories
 from utils import Utils
+
+from perceptual import Perceptual
+
+# from perceptual import 
 
 class Model():
     def __init__(self, config, paths,  name='gan_compression', evaluate=False):
@@ -59,6 +66,9 @@ class Model():
         #                                  use_conditional_GAN=config.use_conditional_GAN,
         #                                  semantic_map_paths=self.test_semantic_map_path_placeholder,
         #                                  test=True)
+
+        self.perceptual_weights = 
+
 
         train_dataset = Data.load_dataset(self.path_placeholder,
                                           config.batch_size,
@@ -194,8 +204,13 @@ class Model():
         tf.summary.scalar('distortion_penalty', distortion_penalty)
         if config.use_feature_matching_loss:
             tf.summary.scalar('feature_matching_loss', feature_matching_loss)
-        tf.summary.scalar('G_global_step', self.G_global_step)
-        tf.summary.scalar('D_global_step', self.D_global_step)
+        psnr = tf.image.psnr(self.example,self.reconstruction,max_val=1.0)[0]
+        tf.summary.scalar('PSNR', psnr)
+        ssim = tf.image.ssim(self.example,self.reconstruction,max_val=1.0)[0]
+        tf.summary.scalar('SSIM', ssim)
+        
+        # tf.summary.scalar('G_global_step', self.G_global_step)
+        # tf.summary.scalar('D_global_step', self.D_global_step)
         # tf.summary.image('real_images', self.example[:,:,:,:3], max_outputs=4)
         # tf.summary.image('compressed_images', self.reconstruction[:,:,:,:3], max_outputs=4)
         

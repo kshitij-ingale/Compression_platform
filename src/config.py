@@ -2,14 +2,14 @@
 
 class image_properties(object):
     depth = 3
-    height = 512
-    width = 512
+    height = 800
+    width = 608
     compressed_dims = [1, 32, 32, 8]
 
 class config_train(object):
     train_fraction = 0.8
     mode = 'gan-train'
-    num_epochs = 10
+    num_epochs = 20
     batch_size = 5
     ema_decay = 0.999
     G_learning_rate = 2e-4
@@ -20,7 +20,7 @@ class config_train(object):
     noise_dim = 128
     optimizer = 'adam'
     kernel_size = 3
-    diagnostic_steps = 1
+    diagnostic_steps = 30
 
     # WGAN
     gradient_penalty = True

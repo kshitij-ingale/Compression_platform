@@ -8,7 +8,7 @@ class Data(object):
 
     @staticmethod
     def load_dataframe(filename, load_semantic_maps=False):
-        df = pd.read_hdf(filename, key='df').sample(frac=1).reset_index(drop=True)
+        df = pd.read_hdf(filename, key='df').sample(frac=0.3).reset_index(drop=True)
 
         # if load_semantic_maps:
         #     return df['path'].values, df['semantic_map_path'].values
@@ -51,11 +51,16 @@ class Data(object):
                 # return 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
                     
             # image = _image_decoder(image_path)
-
+            
+            # size = tf.constant([image_properties.height, image_properties.width, image_properties.depth])
+            
             im = tf.image.decode_image(tf.read_file(image_path), channels=image_properties.depth)
             im = tf.image.convert_image_dtype(im, dtype=tf.float32)
             im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
+            
+            # image = _aspect_preserving_width_resize(im)
             im.set_shape([image_properties.height,image_properties.width,image_properties.depth])
+
             return im
             # Explicitly set the shape if you want a sanity check
             # or if you are using your own custom dataset, otherwise

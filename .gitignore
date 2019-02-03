@@ -3,3 +3,4 @@ data/**
 images/**
 model/**
 tensorboard/**
+output/**
