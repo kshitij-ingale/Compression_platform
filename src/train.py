@@ -12,6 +12,9 @@ from data import Data
 from model import Model
 from config import config_train, directories
 
+from tensorflow.keras.utils import multi_gpu_model
+
+
 tf.logging.set_verbosity(tf.logging.ERROR)
 
 def generate_d5(path):
@@ -49,7 +52,15 @@ def train(config, args):
     test_paths = Data.load_dataframe(directories.test)
 
     # Build graph
-    gan = Model(config, paths, name=args.name)
+    # gan = Model(config, paths, name=args.name)
+    model_gan = Model(config, paths, name=args.name)
+    GPUs = Utils.get_available_gpus()
+    if len(GPUs) >= 2:
+        print("Using multi GPU model")
+        gan = multi_gpu_model(model_gan, GPUs, cpu_relocation=True)
+    else:
+        gan = model_gan
+
     saver = tf.train.Saver()
 
     # if config.use_conditional_GAN:
@@ -98,12 +109,8 @@ def train(config, args):
                     summary,_=sess.run([gan.merge_op,gan.G_train_op], feed_dict=feed_dict)
                     gan.train_writer.add_summary(summary, epoch)
 
-                    # summary,_=sess.run(gan.G_train_op, feed_dict=feed_dict)
-                    # summaries = sess.run(gan.loss_summaries, feed_dict={gan.tf_loss_ph: gloss})
-                    # gan.train_writer.add_summary(summaries, step)
-                    # Update discriminator 
                     summary,step, _ = sess.run([gan.merge_op,gan.D_global_step, gan.D_train_op], feed_dict=feed_dict)
-                    gan.train_writer.add_summary(summary, epoch)
+                    gan.train_writer.add_summary(summary, step)
                     G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                     if step % config.diagnostic_steps == 0:
                         # G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)

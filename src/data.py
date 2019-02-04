@@ -8,7 +8,11 @@ class Data(object):
 
     @staticmethod
     def load_dataframe(filename, load_semantic_maps=False):
-        df = pd.read_hdf(filename, key='df').sample(frac=0.3).reset_index(drop=True)
+
+# Images in Dataset = 39052
+# Trial 1 with 20% images = ~7810
+
+        df = pd.read_hdf(filename, key='df').sample(frac=0.2).reset_index(drop=True)
 
         # if load_semantic_maps:
         #     return df['path'].values, df['semantic_map_path'].values

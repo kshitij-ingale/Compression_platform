@@ -63,7 +63,9 @@ class Utils(object):
         local_device_protos = device_lib.list_local_devices()
         #return local_device_protos
         print('Available GPUs:')
-        print([x.name for x in local_device_protos if x.device_type == 'GPU'])
+        GPU_list = [x.name for x in local_device_protos if x.device_type == 'GPU']
+        print(GPU_list)
+        return GPU_list
 
     @staticmethod
     def scope_variables(name):

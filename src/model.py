@@ -25,7 +25,7 @@ class Model():
         Model init, builds full model from network components
         Args:
         - config: Configuation for model archicture, dataset, etc.
-        - paths: Paths to data location (train/validation/test)
+        - paths: Paths to data location (train/validation/ test)
         - name: Full model name
         - evaluate: Switch for training/inference
         Returns
@@ -137,14 +137,6 @@ class Model():
          
         # Loss terms 
         # =======================================================================================================>>>
-  #       self.D_loss = tf.placeholder((tf.float32, shape=[], name='D_loss')
-  #   	self.G_loss = tf.placeholder((tf.float32, shape=[], name='G_loss')
-		# distortion_penalty = tf.placeholder((tf.float32, shape=[], name='distortion_penalty')
-		# # perceptual_loss = tf.placeholder((tf.float32, shape=None, name='perceptual_loss')
-		# if config.use_feature_matching_loss:
-		# 	feature_matching_loss = tf.placeholder((tf.float32, shape=[], name='feature_matching_loss')
-		# self.PSNR = tf.placeholder((tf.float32, shape=[], name='PSNR')
-		# self.SSIM = tf.placeholder((tf.float32, shape=[], name='SSIM')
 
         if config.use_vanilla_GAN is True:
             # Minimize JS divergence
@@ -168,10 +160,12 @@ class Model():
         distortion_penalty = config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
         self.G_loss += distortion_penalty
 
-        # per_loss = Perceptual()
-        # percep_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
-        # self.G_loss += percep_loss
-        
+#################################################################################################################################################################
+        with tf.variable_scope('perceptual_loss'):
+        	per_loss = Perceptual()
+        	percep_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
+        	self.G_loss += percep_loss
+#################################################################################################################################################################
 
         if config.use_feature_matching_loss:  # feature extractor for generator
             D_x_layers, D_Gz_layers = [j for i in Dk_x for j in i], [j for i in Dk_Gz for j in i]

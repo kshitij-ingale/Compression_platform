@@ -2,14 +2,16 @@
 
 class image_properties(object):
     depth = 3
-    height = 800
-    width = 608
+    # height = 800
+    # width = 608
+    height = 512
+    width = 512
     compressed_dims = [1, 32, 32, 8]
-
+    
 class config_train(object):
     train_fraction = 0.8
     mode = 'gan-train'
-    num_epochs = 20
+    num_epochs = 40
     batch_size = 5
     ema_decay = 0.999
     G_learning_rate = 2e-4
