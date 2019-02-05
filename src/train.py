@@ -54,13 +54,13 @@ def train(config, args):
     # Build graph
     # gan = Model(config, paths, name=args.name)
     model_gan = Model(config, paths, name=args.name)
-    GPUs = Utils.get_available_gpus()
-    if len(GPUs) >= 2:
-        print("Using multi GPU model")
-        gan = multi_gpu_model(model_gan, GPUs, cpu_relocation=True)
-    else:
-        gan = model_gan
-
+    # GPUs = Utils.get_available_gpus()
+    # if len(GPUs) >= 2:
+    #     print("Using multi GPU model")
+    #     gan = multi_gpu_model(model_gan, GPUs, cpu_relocation=True)
+    # else:
+    #     gan = model_gan
+    gan = model_gan
     saver = tf.train.Saver()
 
     # if config.use_conditional_GAN:
@@ -79,6 +79,8 @@ def train(config, args):
         sess.run(tf.local_variables_initializer())
         train_handle = sess.run(gan.train_iterator.string_handle())
         test_handle = sess.run(gan.test_iterator.string_handle())
+
+        print(gan.example.shape)
 
         if args.restore_last and ckpt.model_checkpoint_path:
             # Continue training saved model
@@ -100,8 +102,7 @@ def train(config, args):
             # Run diagnostics
             G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle,
                 start_time, epoch, args.name, G_loss_best, D_loss_best)
-
-            
+                    
             while True:
                 try:
                     # Update generator

@@ -67,5 +67,6 @@ class Perceptual(object):
         recon_image.set_shape([1,image_properties.height,image_properties.width,image_properties.depth])
         input_conv = self.eval_vgg(input_image)
         recon_conv = self.eval_vgg(recon_image)
-        return tf.math.squared_difference(recon_conv,input_conv) / (image_properties.height*image_properties.width*image_properties.depth)
+
+        return tf.reduce_mean(tf.math.squared_difference(recon_conv,input_conv) / (image_properties.height*image_properties.width*image_properties.depth))
         # return tf.losses.mean_squared_error(input_conv,recon_conv)

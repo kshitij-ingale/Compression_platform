@@ -12,7 +12,7 @@ class config_train(object):
     train_fraction = 0.8
     mode = 'gan-train'
     num_epochs = 40
-    batch_size = 5
+    batch_size = 1
     ema_decay = 0.999
     G_learning_rate = 2e-4
     D_learning_rate = 2e-4

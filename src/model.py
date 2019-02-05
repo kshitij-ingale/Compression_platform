@@ -63,9 +63,6 @@ class Model():
         #                                  semantic_map_paths=self.test_semantic_map_path_placeholder,
         #                                  test=True)
 
-        # self.perceptual_weights = 
-
-
         train_dataset = Data.load_dataset(self.path_placeholder,
                                           config.batch_size,
                                           augment=False)
@@ -77,7 +74,6 @@ class Model():
         self.iterator = tf.data.Iterator.from_string_handle(self.handle,
                                                                     train_dataset.output_types,
                                                                     train_dataset.output_shapes)
-
         self.train_iterator = train_dataset.make_initializable_iterator()
         self.test_iterator = test_dataset.make_initializable_iterator()
 
@@ -85,8 +81,12 @@ class Model():
         #     self.example, self.semantic_map = self.iterator.get_next()
         # else:
         #     self.example = self.iterator.get_next()
-        self.example = self.iterator.get_next()
-
+        # self.example = self.iterator.get_next()
+        self.example = self.train_iterator.get_next()
+        print(self.example.shape)
+        # with tf.Session():
+        #     print(self.example.eval().shape)
+        
         # Global generator: Encode -> quantize -> reconstruct
         # =======================================================================================================>>>
         with tf.variable_scope('generator'):
@@ -118,8 +118,7 @@ class Model():
 
         if evaluate:
             return
-
-        # Pass generated, real images to discriminator
+        # Pass generated, real images on_penaltyto discriminator
         # =======================================================================================================>>>
 
         # if config.use_conditional_GAN:
@@ -159,12 +158,12 @@ class Model():
 
         distortion_penalty = config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
         self.G_loss += distortion_penalty
-
+        
 #################################################################################################################################################################
-        with tf.variable_scope('perceptual_loss'):
-        	per_loss = Perceptual()
-        	percep_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
-        	self.G_loss += percep_loss
+        # with tf.variable_scope('perceptual_loss'):
+        per_loss = Perceptual()
+        percep_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
+        self.G_loss += percep_loss
 #################################################################################################################################################################
 
         if config.use_feature_matching_loss:  # feature extractor for generator

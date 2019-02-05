@@ -74,10 +74,10 @@ class Network(object):
             w_hard = tf.cast(tf.argmin(tf.abs(w_stack - centers), axis=-1), tf.float32) + tf.reduce_min(centers)
 
             smx = tf.nn.softmax(-1.0/temperature * tf.abs(w_stack - centers), dim=-1)
-            
             # Contract last dimension
-            w_soft = tf.einsum('ijklm,m->ijkl', smx, centers)  # w_soft = tf.tensordot(smx, centers, axes=((-1),(0)))
-
+            w_soft = tf.einsum('ijklm,m->ijkl', smx, centers)
+            # w_soft = tf.tensordot(smx, centers, axes=((-1),(0)))
+            
             # Treat quantization as differentiable for optimization
             w_bar = tf.round(tf.stop_gradient(w_hard - w_soft) + w_soft)
 
