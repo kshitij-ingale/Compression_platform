@@ -12,7 +12,7 @@ class config_train(object):
     train_fraction = 0.8
     mode = 'gan-train'
     num_epochs = 40
-    batch_size = 1
+    batch_size = 4
     ema_decay = 0.999
     G_learning_rate = 2e-4
     D_learning_rate = 2e-4
@@ -24,14 +24,7 @@ class config_train(object):
     kernel_size = 3
     diagnostic_steps = 30
 
-    perceptual_coeff = 0.1
-
-    # WGAN
-    gradient_penalty = True
-    lambda_gp = 10
-    weight_clipping = False
-    max_c = 1e-2
-    n_critic_iterations = 20
+    perceptual_coeff = 0.05
 
     # Compression
     lambda_X = 12

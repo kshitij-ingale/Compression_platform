@@ -299,34 +299,34 @@ class Network(object):
                 print('Noise - ', out.shape)
         return out
 
-    @staticmethod
-    def dcgan_discriminator(x, config, training, reuse=False, actv=tf.nn.relu):
-        # x is either generator output G(z) or drawn from the real data distribution
-        init =  tf.contrib.layers.xavier_initializer()
-        kwargs = {'center':True, 'scale':True, 'training':training, 'fused':True, 'renorm':False}
-        print('Shape of x:', x.get_shape().as_list())
-        x = tf.reshape(x, shape=[-1, 32, 32, 3]) 
-        # x = tf.reshape(x, shape=[-1, 28, 28, 1]) 
+    # @staticmethod
+    # def dcgan_discriminator(x, config, training, reuse=False, actv=tf.nn.relu):
+    #     # x is either generator output G(z) or drawn from the real data distribution
+    #     init =  tf.contrib.layers.xavier_initializer()
+    #     kwargs = {'center':True, 'scale':True, 'training':training, 'fused':True, 'renorm':False}
+    #     print('Shape of x:', x.get_shape().as_list())
+    #     x = tf.reshape(x, shape=[-1, 32, 32, 3]) 
+    #     # x = tf.reshape(x, shape=[-1, 28, 28, 1]) 
 
-        with tf.variable_scope('discriminator', reuse=reuse):
-            with tf.variable_scope('conv1', reuse=reuse):
-                c1 = tf.layers.conv2d(x, 64, kernel_size=5, strides=2, padding='same', activation=actv)
-                c1 = tf.layers.batch_normalization(c1, **kwargs)
+    #     with tf.variable_scope('discriminator', reuse=reuse):
+    #         with tf.variable_scope('conv1', reuse=reuse):
+    #             c1 = tf.layers.conv2d(x, 64, kernel_size=5, strides=2, padding='same', activation=actv)
+    #             c1 = tf.layers.batch_normalization(c1, **kwargs)
 
-            with tf.variable_scope('conv2', reuse=reuse):
-                c2 = tf.layers.conv2d(c1, 128, kernel_size=5, strides=2, padding='same', activation=actv)
-                c2 = tf.layers.batch_normalization(c2, **kwargs)
+    #         with tf.variable_scope('conv2', reuse=reuse):
+    #             c2 = tf.layers.conv2d(c1, 128, kernel_size=5, strides=2, padding='same', activation=actv)
+    #             c2 = tf.layers.batch_normalization(c2, **kwargs)
 
-            with tf.variable_scope('fc1', reuse=reuse):
-                fc1 = tf.contrib.layers.flatten(c2)
-                # fc1 = tf.reshape(c2, shape=[-1, 8 * 8 * 128])
-                fc1 = tf.layers.dense(fc1, units=1024, activation=actv, kernel_initializer=init)
-                fc1 = tf.layers.batch_normalization(fc1, **kwargs)
+    #         with tf.variable_scope('fc1', reuse=reuse):
+    #             fc1 = tf.contrib.layers.flatten(c2)
+    #             # fc1 = tf.reshape(c2, shape=[-1, 8 * 8 * 128])
+    #             fc1 = tf.layers.dense(fc1, units=1024, activation=actv, kernel_initializer=init)
+    #             fc1 = tf.layers.batch_normalization(fc1, **kwargs)
             
-            with tf.variable_scope('out', reuse=reuse):
-                out = tf.layers.dense(fc1, units=2, activation=None, kernel_initializer=init)
+    #         with tf.variable_scope('out', reuse=reuse):
+    #             out = tf.layers.dense(fc1, units=2, activation=None, kernel_initializer=init)
 
-        return out
+    #     return out
         
 
     # @staticmethod

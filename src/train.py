@@ -20,7 +20,7 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 def generate_d5(path):
 
     """
-    Implement Preprocessing
+    Implement Preprocessing if required
     """
     abs_path = os.path.abspath(path)+'/'
     file_names = os.listdir(path)
@@ -52,7 +52,6 @@ def train(config, args):
     test_paths = Data.load_dataframe(directories.test)
 
     # Build graph
-    # gan = Model(config, paths, name=args.name)
     model_gan = Model(config, paths, name=args.name)
     # GPUs = Utils.get_available_gpus()
     # if len(GPUs) >= 2:
@@ -63,14 +62,6 @@ def train(config, args):
     gan = model_gan
     saver = tf.train.Saver()
 
-    # if config.use_conditional_GAN:
-    #     feed_dict_test_init = {gan.test_path_placeholder: test_paths, 
-    #                            gan.test_semantic_map_path_placeholder: test_semantic_map_paths}
-    #     feed_dict_train_init = {gan.path_placeholder: paths,
-    #                             gan.semantic_map_path_placeholder: semantic_map_paths}
-    # else:
-    #     feed_dict_test_init = {gan.test_path_placeholder: test_paths}
-    #     feed_dict_train_init = {gan.path_placeholder: paths}
     feed_dict_test_init = {gan.test_path_placeholder: test_paths}
     feed_dict_train_init = {gan.path_placeholder: paths}
 
@@ -79,8 +70,6 @@ def train(config, args):
         sess.run(tf.local_variables_initializer())
         train_handle = sess.run(gan.train_iterator.string_handle())
         test_handle = sess.run(gan.test_iterator.string_handle())
-
-        print(gan.example.shape)
 
         if args.restore_last and ckpt.model_checkpoint_path:
             # Continue training saved model
@@ -114,7 +103,6 @@ def train(config, args):
                     gan.train_writer.add_summary(summary, step)
                     G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                     if step % config.diagnostic_steps == 0:
-                        # G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                         Utils.single_plot(epoch, step, sess, gan, train_handle, args.name, config)
                         
 

@@ -45,24 +45,6 @@ class Model():
         self.path_placeholder = tf.placeholder(paths.dtype, paths.shape)
         self.test_path_placeholder = tf.placeholder(paths.dtype)            
 
-        # self.semantic_map_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
-        # self.test_semantic_map_path_placeholder = tf.placeholder(paths.dtype)  
-
-        # train_dataset = Data.load_dataset(self.path_placeholder,
-        #                                   config.batch_size,
-        #                                   augment=False,
-        #                                   training_dataset=dataset,
-        #                                   use_conditional_GAN=config.use_conditional_GAN,
-        #                                   semantic_map_paths=self.semantic_map_path_placeholder)
-
-        # test_dataset = Data.load_dataset(self.test_path_placeholder,
-        #                                  config.batch_size,
-        #                                  augment=False,
-        #                                  training_dataset=dataset,
-        #                                  use_conditional_GAN=config.use_conditional_GAN,
-        #                                  semantic_map_paths=self.test_semantic_map_path_placeholder,
-        #                                  test=True)
-
         train_dataset = Data.load_dataset(self.path_placeholder,
                                           config.batch_size,
                                           augment=False)
@@ -77,28 +59,14 @@ class Model():
         self.train_iterator = train_dataset.make_initializable_iterator()
         self.test_iterator = test_dataset.make_initializable_iterator()
 
-        # if config.use_conditional_GAN:
-        #     self.example, self.semantic_map = self.iterator.get_next()
-        # else:
-        #     self.example = self.iterator.get_next()
-        # self.example = self.iterator.get_next()
         self.example = self.train_iterator.get_next()
-        print(self.example.shape)
-        # with tf.Session():
-        #     print(self.example.eval().shape)
-        
+
         # Global generator: Encode -> quantize -> reconstruct
         # =======================================================================================================>>>
         with tf.variable_scope('generator'):
             self.feature_map = Network.encoder(self.example, config, self.training_phase, config.channel_bottleneck)
             self.w_hat = Network.quantizer(self.feature_map, config)
             
-            # if config.use_conditional_GAN:
-            #     self.semantic_feature_map = Network.encoder(self.semantic_map, config, self.training_phase, 
-            #         config.channel_bottleneck, scope='semantic_map')
-            #     self.w_hat_semantic = Network.quantizer(self.semantic_feature_map, config, scope='semantic_map')
-
-            #     self.w_hat = tf.concat([self.w_hat, self.w_hat_semantic], axis=-1)
 
             if config.sample_noise is True:
                 print('Sampling noise...')
@@ -121,10 +89,6 @@ class Model():
         # Pass generated, real images on_penaltyto discriminator
         # =======================================================================================================>>>
 
-        # if config.use_conditional_GAN:
-        #     # Model conditional distribution
-        #     self.example = tf.concat([self.example, self.semantic_map], axis=-1)
-        #     self.reconstruction = tf.concat([self.reconstruction, self.semantic_map], axis=-1)
         if config.multiscale:
             D_x, D_x2, D_x4, *Dk_x = Network.multiscale_discriminator(self.example, config, self.training_phase, 
                 use_sigmoid=config.use_vanilla_GAN, mode='real')
@@ -161,9 +125,10 @@ class Model():
         
 #################################################################################################################################################################
         # with tf.variable_scope('perceptual_loss'):
-        per_loss = Perceptual()
-        percep_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
-        self.G_loss += percep_loss
+        per_loss = Perceptual(self.example.shape)
+        perceptual_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
+        self.G_loss += perceptual_loss
+        
 #################################################################################################################################################################
 
         if config.use_feature_matching_loss:  # feature extractor for generator
@@ -205,7 +170,7 @@ class Model():
         tf.summary.scalar('generator_loss', self.G_loss)
         tf.summary.scalar('discriminator_loss', self.D_loss)
         tf.summary.scalar('distortion_penalty', distortion_penalty)
-        # tf.summary.scalar('perceptual_loss', perceptual_loss)
+        tf.summary.scalar('perceptual_loss', perceptual_loss)
         if config.use_feature_matching_loss:
             tf.summary.scalar('feature_matching_loss', feature_matching_loss)
         psnr = tf.image.psnr(self.example,self.reconstruction,max_val=1.0)[0]
@@ -218,8 +183,6 @@ class Model():
         tf.summary.image('real_images', self.example[:,:,:,:3], max_outputs=4)
         tf.summary.image('compressed_images', self.reconstruction[:,:,:,:3], max_outputs=4)
         
-        # if config.use_conditional_GAN:
-        #     tf.summary.image('semantic_map', self.semantic_map, max_outputs=4)
         self.merge_op = tf.summary.merge_all()
 
         self.train_writer = tf.summary.FileWriter(
