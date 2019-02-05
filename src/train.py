@@ -31,8 +31,6 @@ def generate_d5(path):
     test.to_hdf(directories.test, 'df', table=True, mode='a')
 
 
-
-
 def train(config, args):
 
     start_time = time.time()

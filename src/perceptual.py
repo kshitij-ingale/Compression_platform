@@ -6,7 +6,6 @@ class Perceptual(object):
 
     def __init__(self,input_shape):
         self.model = VGG19(include_top=False, weights='imagenet', input_shape=input_shape[1:])
-        print(self.model.summary())
 
     def eval_vgg(self,x):
         for layer in self.model.layers[:7]:

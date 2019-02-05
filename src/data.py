@@ -9,7 +9,7 @@ class Data(object):
     @staticmethod
     def load_dataframe(filename, load_semantic_maps=False):
 
-        df = pd.read_hdf(filename, key='df').sample(frac=0.2).reset_index(drop=True)
+        df = pd.read_hdf(filename, key='df').sample(frac=0.03).reset_index(drop=True)
         return df['path'].values
 
     @staticmethod

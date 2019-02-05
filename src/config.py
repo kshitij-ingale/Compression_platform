@@ -4,8 +4,8 @@ class image_properties(object):
     depth = 3
     # height = 800
     # width = 608
-    height = 512
-    width = 512
+    height = 224
+    width = 176
     compressed_dims = [1, 32, 32, 8]
     
 class config_train(object):
