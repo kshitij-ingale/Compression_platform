@@ -4,4 +4,4 @@ images/**
 model/**
 tensorboard/**
 output/**
-src/__pycache__/
+src/__pycache__/*

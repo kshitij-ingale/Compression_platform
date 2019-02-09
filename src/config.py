@@ -4,12 +4,12 @@ class image_properties(object):
     depth = 3
     # height = 800
     # width = 608
-    height = 224
-    width = 176
+    height = 256
+    width = 256
     compressed_dims = [1, 32, 32, 8]
     
 class config_train(object):
-    train_fraction = 0.8
+    train_fraction = 0.9
     mode = 'gan-train'
     num_epochs = 40
     batch_size = 4
@@ -24,7 +24,7 @@ class config_train(object):
     kernel_size = 3
     diagnostic_steps = 30
 
-    perceptual_coeff = 0.05
+    perceptual_coeff = 0.2
 
     # Compression
     lambda_X = 12

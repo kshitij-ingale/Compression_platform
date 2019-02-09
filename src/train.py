@@ -24,6 +24,10 @@ def generate_d5(path):
     """
     abs_path = os.path.abspath(path)+'/'
     file_names = os.listdir(path)
+    if len(file_names)%config_train.batch_size!=0:
+        while len(file_names)%config_train.batch_size!=0:
+            file_names = file_names[:-1]
+    
     file_loc = [abs_path + x for x in file_names]
     train = pd.DataFrame({'path':file_loc[:int(len(file_names)*config_train.train_fraction)]})
     test = pd.DataFrame({'path':file_loc[int(len(file_names)*config_train.train_fraction):]})
@@ -113,6 +117,10 @@ def train(config, args):
                         '{}_last.ckpt'.format(args.name)), global_step=epoch)
                     print('Interrupted, model saved to: ', save_path)
                     sys.exit()
+                    
+            if epoch % 5 == 0 and epoch > 5:
+                save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(name, epoch)), global_step=epoch)
+                print('Graph saved to file: {}'.format(save_path))
 
         save_path = saver.save(sess, os.path.join(directories.checkpoints,
                                '{}_end.ckpt'.format(args.name)),

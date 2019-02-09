@@ -92,11 +92,11 @@ class Utils(object):
                 save_path = saver.save(sess,
                             os.path.join(directories.checkpoints_best, '{}_epoch{}.ckpt'.format(name, epoch)),
                             global_step=epoch)
-                print('Graph saved to file: {}'.format(save_path))
+                print('Current Best Graph saved to file: {}'.format(save_path))
 
-        if epoch % 5 == 0 and epoch > 5:
-            save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(name, epoch)), global_step=epoch)
-            print('Graph saved to file: {}'.format(save_path))
+        # if epoch % 5 == 0 and epoch > 5:
+        #     save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(name, epoch)), global_step=epoch)
+        #     print('Graph saved to file: {}'.format(save_path))
 
         print('Epoch {} | Generator Loss: {:.3f} | Discriminator Loss: {:.3f} | Rate: {} examples/s ({:.2f} s) {}'.format(epoch, G_loss, D_loss, int(config.batch_size/(time.time()-t0)), time.time() - start_time, improved))
 

@@ -12,9 +12,10 @@ s1=[]
 s2=[]
 for ct,file in enumerate(all_file_loc):
 	image = cv2.imread(file,cv2.IMREAD_COLOR)
-	s1.append(image.shape[0])
-	s2.append(image.shape[1])
-	resized_image = cv2.resize(image, (image_properties.width, image_properties.height)) 
+#	s1.append(image.shape[0])
+#	s2.append(image.shape[1])
+#	resized_image = cv2.resize(image, (image_properties.width, image_properties.height)
+	resized_image = image[:,1:-1]
 	cv2.imwrite(file,resized_image)
 	print(ct)
 

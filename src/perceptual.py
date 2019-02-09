@@ -18,4 +18,4 @@ class Perceptual(object):
         input_conv = self.eval_vgg(input_image)
         recon_conv = self.eval_vgg(recon_image)
             
-        return tf.losses.mean_squared_error(input_conv,recon_conv)
+        return tf.sqrt(tf.losses.mean_squared_error(input_conv,recon_conv))
