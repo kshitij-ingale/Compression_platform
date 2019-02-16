@@ -123,14 +123,10 @@ class Model():
         distortion_penalty = config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
         self.G_loss += distortion_penalty
         
-#################################################################################################################################################################
-        # with tf.variable_scope('perceptual_loss'):
         per_loss = Perceptual(self.example.shape)
         perceptual_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
         self.G_loss += perceptual_loss
-        
-#################################################################################################################################################################
-
+ 
         if config.use_feature_matching_loss:  # feature extractor for generator
             D_x_layers, D_Gz_layers = [j for i in Dk_x for j in i], [j for i in Dk_Gz for j in i]
             feature_matching_loss = tf.reduce_sum([tf.reduce_mean(tf.abs(Dkx-Dkz)) for Dkx, Dkz in zip(D_x_layers, D_Gz_layers)])

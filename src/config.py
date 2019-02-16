@@ -6,7 +6,7 @@ class image_properties(object):
     # width = 608
     height = 256
     width = 256
-    compressed_dims = [1, 32, 32, 8]
+    compressed_dims = [1, 32, 32, 10]
     
 class config_train(object):
     train_fraction = 0.9
@@ -22,13 +22,13 @@ class config_train(object):
     noise_dim = 128
     optimizer = 'adam'
     kernel_size = 3
-    diagnostic_steps = 30
+    diagnostic_steps = 50
 
     perceptual_coeff = 0.2
 
     # Compression
     lambda_X = 12
-    channel_bottleneck = 8
+    channel_bottleneck = 10
     sample_noise = False
     use_vanilla_GAN = False
     use_feature_matching_loss = True

@@ -20,7 +20,7 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 def generate_d5(path):
 
     """
-    Implement Preprocessing if required
+    Use preprocess.py if required
     """
     abs_path = os.path.abspath(path)+'/'
     file_names = os.listdir(path)
@@ -43,25 +43,12 @@ def train(config, args):
 
     # Load data
     print('Training on dataset')
-    # if config.use_conditional_GAN:
-    #     print('Using conditional GAN')
-    #     paths, semantic_map_paths = Data.load_dataframe(directories.train, load_semantic_maps=True)
-    #     test_paths, test_semantic_map_paths = Data.load_dataframe(directories.test, load_semantic_maps=True)
-    # else:
-    #     paths = Data.load_dataframe(directories.train)
-    #     test_paths = Data.load_dataframe(directories.test)
     paths = Data.load_dataframe(directories.train)
     test_paths = Data.load_dataframe(directories.test)
 
     # Build graph
-    model_gan = Model(config, paths, name=args.name)
-    # GPUs = Utils.get_available_gpus()
-    # if len(GPUs) >= 2:
-    #     print("Using multi GPU model")
-    #     gan = multi_gpu_model(model_gan, GPUs, cpu_relocation=True)
-    # else:
-    #     gan = model_gan
-    gan = model_gan
+    gan = Model(config, paths, name=args.name)
+    
     saver = tf.train.Saver()
 
     feed_dict_test_init = {gan.test_path_placeholder: test_paths}
@@ -103,8 +90,9 @@ def train(config, args):
 
                     summary,step, _ = sess.run([gan.merge_op,gan.D_global_step, gan.D_train_op], feed_dict=feed_dict)
                     gan.train_writer.add_summary(summary, step)
-                    G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
+                    
                     if step % config.diagnostic_steps == 0:
+                        G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                         Utils.single_plot(epoch, step, sess, gan, train_handle, args.name, config)
                         
 
@@ -119,7 +107,7 @@ def train(config, args):
                     sys.exit()
                     
             if epoch % 5 == 0 and epoch > 5:
-                save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(name, epoch)), global_step=epoch)
+                save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(args.name, epoch)), global_step=epoch)
                 print('Graph saved to file: {}'.format(save_path))
 
         save_path = saver.save(sess, os.path.join(directories.checkpoints,

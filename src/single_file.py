@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 """
 Script to run inference (i.e. image encoding and decoding) on a single image.
-Code borrows from implementation provided by Justin-Tan (https://github.com/Justin-Tan/generative-compression)
-and is further modified for trianing on portraits data set with variable input image shapes
+Codebase borrowed from Justin Tan repo (https://github.com/Justin-Tan/generative-compression)
 """
 import tensorflow as tf
 import numpy as np
@@ -27,31 +26,16 @@ def single_compress(config, args):
     - args: Parsed arguments for inference
     Output:
     Image with original and reconstructed images, side by side
-    TODOs:
-    - Return and save the compressed and quantized feature map 
-    - Provide funcitonality to de-compress image from quantized feature map input
     """
     start = time.time()
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
     assert (ckpt.model_checkpoint_path), 'Missing checkpoint file!'
 
-    # if config.use_conditional_GAN:
-    #     print('Using conditional GAN')
-    #     paths, semantic_map_paths = np.array([args.image_path]), np.array([args.semantic_map_path])
-    # else:
-    #     paths = np.array([args.image_path])
-
     paths = np.array([args.image_path])
 
-    # gan = Model(config, paths, name='single_compress', dataset=args.dataset, evaluate=True)
     gan = Model(config, paths, name='single_compress', evaluate=True)
     saver = tf.train.Saver()
 
-    # if config.use_conditional_GAN:
-    #     feed_dict_init = {gan.path_placeholder: paths,
-    #                       gan.semantic_map_path_placeholder: semantic_map_paths}
-    # else:
-    #     feed_dict_init = {gan.path_placeholder: paths}
     feed_dict_init = {gan.path_placeholder: paths}
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)) as sess:
