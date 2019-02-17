@@ -33,24 +33,24 @@ class Data(object):
         return dataset
 
 
-    @staticmethod
-    def load_inference(filenames, labels, batch_size, resize=(32,32)):
+    # @staticmethod
+    # def load_inference(filenames, labels, batch_size, resize=(32,32)):
 
-        # Single image estimation over multiple stochastic forward passes
+    #     # Single image estimation over multiple stochastic forward passes
 
-        def _preprocess_inference(image_path, label, resize=(32,32)):
-            # Preprocess individual images during inference
-            image_path = tf.squeeze(image_path)
-            image = tf.image.decode_png(tf.read_file(image_path))
-            image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-            image = tf.image.per_image_standardization(image)
-            image = tf.image.resize_images(image, size=resize)
+    #     def _preprocess_inference(image_path, label, resize=(32,32)):
+    #         # Preprocess individual images during inference
+    #         image_path = tf.squeeze(image_path)
+    #         image = tf.image.decode_png(tf.read_file(image_path))
+    #         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
+    #         image = tf.image.per_image_standardization(image)
+    #         image = tf.image.resize_images(image, size=resize)
 
-            return image, label
+    #         return image, label
 
-        dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
-        dataset = dataset.map(_preprocess_inference)
-        dataset = dataset.batch(batch_size)
+    #     dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
+    #     dataset = dataset.map(_preprocess_inference)
+    #     dataset = dataset.batch(batch_size)
         
-        return dataset
+    #     return dataset
 
