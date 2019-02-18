@@ -25,6 +25,49 @@ class Model():
         None (Function will be used to initiate model instance)
         """
 
+###############################################################################################################################
+        if evaluate:
+            print('Building computational graph')
+            self.G_global_step = tf.Variable(0, trainable=False)
+            self.D_global_step = tf.Variable(0, trainable=False)
+            self.handle = tf.placeholder(tf.string, shape=[])
+            self.training_phase = tf.placeholder(tf.bool)
+
+            # self.path_placeholder = tf.placeholder(paths.dtype, paths.shape)
+            self.test_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
+            
+            # Loading Dataset
+            # train_dataset = Data.load_dataset(self.path_placeholder, config.batch_size)
+            test_dataset = Data.load_dataset(self.test_path_placeholder, config.batch_size, test=True)
+
+            # Initiating iterators for traversing through dataset
+            self.iterator = tf.data.Iterator.from_string_handle(self.handle, test_dataset.output_types, test_dataset.output_shapes)
+            # self.train_iterator = train_dataset.make_initializable_iterator()
+            self.test_iterator = test_dataset.make_initializable_iterator()
+            
+            # ==========================================================================================================
+            # Encoding and decoding section
+            self.example = self.test_iterator.get_next()
+            with tf.variable_scope('generator'):
+                # Encode input image to obtain latent features map
+                self.feature_map = Network.encoder(self.example, config, self.training_phase, config.channel_bottleneck)
+                # Quantize latent feature map for lossy compression
+                self.z = Network.quantizer(self.feature_map, config)
+                # Reconstruct compressed image from quantized vector
+                self.reconstruction = Network.decoder(self.z, config, self.training_phase, C=config.channel_bottleneck)
+
+            print('Real image shape:', self.example.get_shape().as_list())
+            print('Reconstruction shape:', self.reconstruction.get_shape().as_list())
+
+        
+            return
+
+
+
+
+###############################################################################################################################
+
+
         print('Building computational graph')
         self.G_global_step = tf.Variable(0, trainable=False)
         self.D_global_step = tf.Variable(0, trainable=False)
@@ -32,7 +75,7 @@ class Model():
         self.training_phase = tf.placeholder(tf.bool)
 
         self.path_placeholder = tf.placeholder(paths.dtype, paths.shape)
-        self.test_path_placeholder = tf.placeholder(paths.dtype)
+        self.test_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
         
         # Loading Dataset
         train_dataset = Data.load_dataset(self.path_placeholder, config.batch_size)

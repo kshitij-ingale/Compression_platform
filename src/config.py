@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 class image_properties(object):
-    DEPTH = 3                                       # Dimension of the input image to network corresponding to channels
-    HEIGHT = 256                                    # Dimension of the input image to network corresponding to height
-    WIDTH = 256                                     # Dimension of the input image to network corresponding to width
-    compressed_dims = [1, HEIGHT/16, WIDTH/16, 10]  # Dimension of the compressed quantized vector
+    DEPTH = 3                                                 # Dimension of the input image to network corresponding to channels
+    HEIGHT = 256                                              # Dimension of the input image to network corresponding to height
+    WIDTH = 256                                               # Dimension of the input image to network corresponding to width
+    compressed_dims = [1, int(HEIGHT/16), int(WIDTH/16), 10]  # Dimension of the compressed quantized vector
     
 class config_train(object):
     
@@ -38,3 +38,4 @@ class directories(object):
     checkpoints = 'checkpoints'             # Directory for storing checkpoints
     checkpoints_best = 'checkpoints/best'   # Directory for storing checkpoints corresponding to minimum loss values
     samples = 'output/'                     # Directory for output files
+    infer = 'hdf_store/infer.d5'

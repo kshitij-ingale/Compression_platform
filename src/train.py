@@ -33,7 +33,7 @@ def generate_hdf(path):
 
     abs_path = os.path.abspath(path)+'/'
     file_names = os.listdir(path)
-    
+
     if len(file_names)%config_train.batch_size!=0:
         while len(file_names)%config_train.batch_size!=0:
             file_names = file_names[:-1]
@@ -59,18 +59,19 @@ def train(config, args):
 
     start_time = time.time()
     G_loss_best, D_loss_best = float('inf'), float('inf')
+    # Load checkpoint
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
 
-    # Load data
+    # Load training and test dataset
     print('Training on dataset')
     paths = Data.load_dataframe(directories.train)
     test_paths = Data.load_dataframe(directories.test)
 
-    # Build graph
+    # Build computational graph of the model through model instance
     gan = Model(config, paths, name=args.name)
     
     saver = tf.train.Saver()
-
+    # Generate feed dictionary for Tensorflow session
     feed_dict_test_init = {gan.test_path_placeholder: test_paths}
     feed_dict_train_init = {gan.path_placeholder: paths}
 
@@ -97,7 +98,7 @@ def train(config, args):
 
             sess.run(gan.train_iterator.initializer, feed_dict=feed_dict_train_init)
 
-            # Run diagnostics
+            # Evaluate model performance
             G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                     
             while True:
@@ -110,6 +111,7 @@ def train(config, args):
                     summary,step, _ = sess.run([gan.merge_op,gan.D_global_step, gan.D_train_op], feed_dict=feed_dict)
                     gan.train_writer.add_summary(summary, step)
                     
+                    # Evaluate model performance during an epoch after steps specified in config file
                     if step % config.diagnostic_steps == 0:
                         G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                         Utils.single_plot(epoch, step, sess, gan, train_handle, args.name, config)
@@ -150,7 +152,7 @@ def main(**kwargs):
     parser.add_argument("-rl", "--restore_last", help="restore last saved model", action="store_true")
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
     parser.add_argument("-name", "--name", default="gan-train", help="Checkpoint/Tensorboard label")
-    parser.add_argument("-path", "--path", default=None, help="Preprocessing Required",type=str)
+    parser.add_argument("-path", "--path", default=None, help="Directory to input images",type=str)
     args = parser.parse_args()
 
     if args.path:

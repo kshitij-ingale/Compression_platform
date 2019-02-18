@@ -66,7 +66,7 @@ class Utils(object):
         sess            : Tensorflow session instance
         model           : Current model instance
         handle          : Handle string corresponding to train/test
-        name            : Model name
+        name            : File name to be saved
         config          : Configuration parameters
         single_compress : Variable to check if inference on single file or evaluation step during training
         
@@ -131,7 +131,7 @@ class Utils(object):
         # compressed vector as obtained from input file
         quantized_z = read_compressed_file(input)
         # Obtain reconstructed image 
-        g = sess.run( recon, feed_dict={model.w_hat:quantized_z, model.training_phase:True, model.handle: handle})
+        g = sess.run( recon, feed_dict={model.z:quantized_z, model.training_phase:True, model.handle: handle})
 
         # Convert from [-1,1] domain to [0,1]
         im = ((g+1.0))/2

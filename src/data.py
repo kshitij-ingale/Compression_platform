@@ -51,7 +51,7 @@ class Data(object):
         dataset = dataset.shuffle(buffer_size=8)
         dataset = dataset.batch(batch_size)
 
-        if test:
-            dataset = dataset.repeat()
+        # if test:
+        #     dataset = dataset.repeat()
 
         return dataset
