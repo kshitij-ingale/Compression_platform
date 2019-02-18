@@ -2,11 +2,9 @@
 
 class image_properties(object):
     depth = 3
-    # height = 800
-    # width = 608
     height = 256
     width = 256
-    compressed_dims = [1, 32, 32, 10]
+    compressed_dims = [1, height/16, width/16, 10]
     
 class config_train(object):
     train_fraction = 0.9
@@ -27,7 +25,7 @@ class config_train(object):
     perceptual_coeff = 0.2
 
     # Compression
-    lambda_X = 12
+    lambda_X = 12   # Distortion Penalty
     channel_bottleneck = 10
     sample_noise = False
     use_vanilla_GAN = False
@@ -52,18 +50,11 @@ class config_test(object):
     kernel_size = 3
     diagnostic_steps = 256
 
-    perceptual_coeff = 0.1
-
-    # WGAN
-    gradient_penalty = True
-    lambda_gp = 10
-    weight_clipping = False
-    max_c = 1e-2
-    n_critic_iterations = 5
+    perceptual_coeff = 0.2
 
     # Compression
     lambda_X = 12
-    channel_bottleneck = 8
+    channel_bottleneck = 10
     sample_noise = False
     use_vanilla_GAN = False
     use_feature_matching_loss = True

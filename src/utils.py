@@ -1,79 +1,38 @@
 # -*- coding: utf-8 -*-
-# Diagnostic helper functions for Tensorflow session
+# Script for utility functions like comparing current model parameters, reading or writing quantized vectors
+# Code borrowed from Justin Tan (https://github.com/Justin-Tan/generative-compression) and modified as required
+
 
 import tensorflow as tf
 import numpy as np
-import os, time
-import matplotlib as mpl
-mpl.use('Agg')
+import time
 import matplotlib.pyplot as plt
-import seaborn as sns
-import h5py
-import struct
-from array import array
 
 from config import directories, image_properties
 
 class Utils(object):
     
     @staticmethod
-    def conv_block(x, filters, kernel_size=[3,3], strides=2, padding='same', actv=tf.nn.relu):
-        in_kwargs = {'center':True, 'scale': True}
-        x = tf.layers.conv2d(x, filters, kernel_size, strides=strides, padding=padding, activation=None)
-        x = tf.contrib.layers.instance_norm(x, **in_kwargs)
-        x = actv(x)
+    def run_diagnostics(model, config, sess, saver, train_handle, start_time, epoch, name, G_loss_best, D_loss_best):
+        """
+        Function to evaluate model performance and save checkpoint 
 
-        return x
+        Input:
+        model        : Current step model instance
+        config       : Configuration parameters
+        sess         : Tensorflow session instance
+        train_handle : train handle string 
+        start_time   : Starting time for the current epoch
+        epoch        : Current epoch
+        name         : Model name
+        G_loss_best  : Lowest loss value for generator
+        D_loss_best  : Lowest loss value for discriminator
+        
+        Output:
+        G_loss_best  : Current lowest loss value for generator
+        D_loss_best  : Current lowest loss value for discriminator
+        """
 
-    @staticmethod
-    def upsample_block(x, filters, kernel_size=[3,3], strides=2, padding='same', actv=tf.nn.relu):
-        in_kwargs = {'center':True, 'scale': True}
-        x = tf.layers.conv2d_transpose(x, filters, kernel_size, strides=strides, padding=padding, activation=None)
-        x = tf.contrib.layers.instance_norm(x, **in_kwargs)
-        x = actv(x)
-
-        return x
-
-    @staticmethod
-    def residual_block(x, n_filters, kernel_size=3, strides=1, actv=tf.nn.relu):
-        init = tf.contrib.layers.xavier_initializer()
-        # kwargs = {'center':True, 'scale':True, 'training':training, 'fused':True, 'renorm':False}
-        strides = [1,1]
-        identity_map = x
-
-        p = int((kernel_size-1)/2)
-        res = tf.pad(x, [[0, 0], [p, p], [p, p], [0, 0]], 'REFLECT')
-        res = tf.layers.conv2d(res, filters=n_filters, kernel_size=kernel_size, strides=strides,
-                activation=None, padding='VALID')
-        res = actv(tf.contrib.layers.instance_norm(res))
-
-        res = tf.pad(res, [[0, 0], [p, p], [p, p], [0, 0]], 'REFLECT')
-        res = tf.layers.conv2d(res, filters=n_filters, kernel_size=kernel_size, strides=strides,
-                activation=None, padding='VALID')
-        res = tf.contrib.layers.instance_norm(res)
-
-        assert res.get_shape().as_list() == identity_map.get_shape().as_list(), 'Mismatched shapes between input/output!'
-        out = tf.add(res, identity_map)
-
-        return out
-
-    @staticmethod
-    def get_available_gpus():
-        from tensorflow.python.client import device_lib
-        local_device_protos = device_lib.list_local_devices()
-        #return local_device_protos
-        print('Available GPUs:')
-        GPU_list = [x.name for x in local_device_protos if x.device_type == 'GPU']
-        print(GPU_list)
-        return GPU_list
-
-    @staticmethod
-    def scope_variables(name):
-        with tf.variable_scope(name):
-            return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=tf.get_variable_scope().name)
-
-    @staticmethod
-    def run_diagnostics(model, config, directories, sess, saver, train_handle, start_time, epoch, name, G_loss_best, D_loss_best):
         t0 = time.time()
         improved = ''
         sess.run(tf.local_variables_initializer())
@@ -89,14 +48,8 @@ class Utils(object):
             G_loss_best, D_loss_best = G_loss, D_loss
             improved = '[*]'
             if epoch>5:
-                save_path = saver.save(sess,
-                            os.path.join(directories.checkpoints_best, '{}_epoch{}.ckpt'.format(name, epoch)),
-                            global_step=epoch)
+                save_path = saver.save(sess, os.path.join(directories.checkpoints_best, '{}_epoch{}.ckpt'.format(name, epoch)), global_step=epoch)
                 print('Current Best Graph saved to file: {}'.format(save_path))
-
-        # if epoch % 5 == 0 and epoch > 5:
-        #     save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(name, epoch)), global_step=epoch)
-        #     print('Graph saved to file: {}'.format(save_path))
 
         print('Epoch {} | Generator Loss: {:.3f} | Discriminator Loss: {:.3f} | Rate: {} examples/s ({:.2f} s) {}'.format(epoch, G_loss, D_loss, int(config.batch_size/(time.time()-t0)), time.time() - start_time, improved))
 
@@ -104,16 +57,31 @@ class Utils(object):
 
     @staticmethod
     def single_plot(epoch, global_step, sess, model, handle, name, config, single_compress=False):
+        """
+        Function to obtain reconstructed image and compare with input image
+
+        Input:
+        epoch           : Current epoch
+        global_step     : Current step
+        sess            : Tensorflow session instance
+        model           : Current model instance
+        handle          : Handle string corresponding to train/test
+        name            : Model name
+        config          : Configuration parameters
+        single_compress : Variable to check if inference on single file or evaluation step during training
+        
+        Output:
+        None (File saved in location)
+        """
 
         real = model.example[0]
         gen = model.reconstruction[0]
         quantized_z = model.z
-        # Generate images from noise, using the generator network.
+        
         r, g, z = sess.run([real, gen, quantized_z], feed_dict={model.training_phase:True, model.handle: handle})
         
-        images = list()
-
-        for im, imtype in zip([r,g], ['real', 'gen']):
+        images = []
+        for im in [r,g]:
             im = ((im+1.0))/2  # [-1,1] -> [0,1]
             im = np.squeeze(im)
             if image_properties.depth == 1:
@@ -122,12 +90,10 @@ class Utils(object):
                 im = im[:,:,:3]
             images.append(im)
 
-            # Uncomment to plot real and generated samples separately
             f = plt.figure()
             plt.imshow(im)
             plt.axis('off')
             if single_compress:
-                #f.savefig(name+'.jpg', format = 'jpg', dpi=720, bbox_inches='tight', pad_inches=0)
                 plt.imsave(name+'.jpg',np.asarray(im))
                 plt.gcf().clear()
             plt.close(f)
@@ -139,7 +105,103 @@ class Utils(object):
             f.savefig(name, format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)            
             write_compressed_file(z,name)
         else:
-            f.savefig("{}/gan_compression_{}_epoch{}_step{}_{}_comparison.pdf".format(directories.samples, name, epoch,
-                global_step, imtype), format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
+            f.savefig("{}/gan_compression_{}_epoch{}_step{}_comparison.pdf".format(directories.samples, name, epoch,
+                global_step), format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
         plt.gcf().clear()
         plt.close(f)
+
+    @staticmethod
+    def decode(sess, model, handle, input, name, config):
+        """
+        Function to obtain reconstructed image from quantized vector 
+        
+        Input:
+        sess         : Tensorflow session instance
+        model        : Current step model instance
+        handle       : Handle string corresponding to train/test
+        input        : Input file consisting of compressed quantized vector
+        name         : Model name
+        config       : Configuration parameters
+        
+        Output:
+        None (File saved in location)
+        """
+        # reconstruction module from model
+        recon = model.reconstruction
+        # compressed vector as obtained from input file
+        quantized_z = read_compressed_file(input)
+        # Obtain reconstructed image 
+        g = sess.run( recon, feed_dict={model.w_hat:quantized_z, model.training_phase:True, model.handle: handle})
+
+        # Convert from [-1,1] domain to [0,1]
+        im = ((g+1.0))/2
+        im = np.squeeze(im)
+        if image_properties.depth == 1:
+            im = im[:,:,]
+        else:
+            im = im[:,:,:3]
+        # Save reconstructed image
+        f = plt.figure()
+        plt.imshow(im)
+        plt.axis('off')
+        plt.imsave(name+'.jpg',np.asarray(im))
+        plt.gcf().clear()
+        plt.close(f)
+
+def write_compressed_file(data, out_file = 'compressed_x'):
+    """
+    Function to write quantized vector of image as a binary file
+    
+    Input:
+    data : Quantized vector of image
+    out_file : File name for binary file to be stored
+    
+    Output:
+    None (File saved in location)
+    """
+    
+    bitstring = ''            
+    for center in data.astype(int).flatten():
+        if center == 0:
+            bitstring+='00'
+        elif center == 1:
+            bitstring+='10'
+        elif center == 2:
+            bitstring+='01'
+        elif center == 3:
+            bitstring += '11'
+        else:
+            print('Error in encoding' )
+        
+    print('File size = ',len(bitstring))
+    with open(out_file+'.bin', 'w') as f:
+        f.write(bitstring)
+
+def read_compressed_file(input_file):
+    """
+    Function to write quantized vector of image as a binary file
+    
+    Input:
+    input_file : File name for binary file to be restored to reconstructed image
+    
+    Output:
+    Matrix containing quantized vector for reconstruction
+    """
+
+    with open(input_file, 'rb') as f:
+        data=str(f.read())
+    f.close()
+
+    comp = []
+    for i in range(0,len(data),2):
+        bit = data[i:i+2]
+        if bit == '00':
+            comp.append(0.)
+        elif bit == '10':
+            comp.append(1.)
+        elif bit == '01':
+            comp.append(2.)
+        elif bit == '11':
+            comp.append(3.)
+    im_mat = np.array(comp)
+    return im_mat.reshape(image_properties.compressed_dims)

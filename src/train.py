@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# Script to train the GAN based image compression model
+# Code borrowed from Justin Tan (https://github.com/Justin-Tan/generative-compression) and modified as required
+
 import tensorflow as tf
 import numpy as np
 import pandas as pd
@@ -17,11 +20,17 @@ from tensorflow.keras.utils import multi_gpu_model
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
-def generate_d5(path):
+def generate_hdf(path):
+    """
+    Function to obtain hdf file given the input images directory
 
+    Input:
+    path : Input image directory
+
+    Output:
+    None (File saved in directory as per config file)
     """
-    Use preprocess.py if required
-    """
+
     abs_path = os.path.abspath(path)+'/'
     file_names = os.listdir(path)
     if len(file_names)%config_train.batch_size!=0:
@@ -36,6 +45,16 @@ def generate_d5(path):
 
 
 def train(config, args):
+    """
+    Function to instantiate and train model
+
+    Input:
+    config : Configuration parameters as defined in config file
+    args   : Input arguments as parsed by argparse
+
+    Output:
+    None (File saved in directory as per config file)
+    """
 
     start_time = time.time()
     G_loss_best, D_loss_best = float('inf'), float('inf')
@@ -78,8 +97,7 @@ def train(config, args):
             sess.run(gan.train_iterator.initializer, feed_dict=feed_dict_train_init)
 
             # Run diagnostics
-            G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle,
-                start_time, epoch, args.name, G_loss_best, D_loss_best)
+            G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                     
             while True:
                 try:
@@ -117,6 +135,16 @@ def train(config, args):
     print("Training Complete. Model saved to file: {} Time elapsed: {:.3f} s".format(save_path, time.time()-start_time))
 
 def main(**kwargs):
+    """
+    Function to parse arguments and run inference
+
+    Input:
+    Input arguments as parsed by argparse
+
+    Output:
+    None (Run inference by calling appropriate function)
+    """
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-rl", "--restore_last", help="restore last saved model", action="store_true")
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
@@ -125,9 +153,8 @@ def main(**kwargs):
     parser.add_argument("-path", "--path", default=None, help="Preprocessing Required",type=str)
     args = parser.parse_args()
 
-    # Launch training
     if args.path:
-        generate_d5(args.path)
+        generate_hdf(args.path)
 
     train(config_train, args)
 

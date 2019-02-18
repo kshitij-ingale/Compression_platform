@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-"""
-Script to run inference (i.e. image encoding and decoding) on a single image.
-Codebase borrowed from Justin Tan repo (https://github.com/Justin-Tan/generative-compression)
-"""
+
+# Script to run inference (i.e. image encoding and decoding) on a single image.
+# Code borrowed from Justin Tan (https://github.com/Justin-Tan/generative-compression) and modified as required
+
 import tensorflow as tf
 import numpy as np
 import pandas as pd
@@ -18,16 +18,40 @@ from config import config_test, directories
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
+def generate_hdf(path):
+    """
+    Function to obtain hdf file given the input images directory
+
+    Input:
+    path : Input image directory
+
+    Output:
+    None (File saved in directory as per config file)
+    """
+
+    abs_path = os.path.abspath(path)+'/'
+    file_names = os.listdir(path)
+    if len(file_names)%config_train.batch_size!=0:
+        while len(file_names)%config_train.batch_size!=0:
+            file_names = file_names[:-1]
+    
+    file_loc = [abs_path + x for x in file_names]
+    test = pd.DataFrame({'path':file_loc})
+    test.to_hdf(directories.test, 'df', table=True, mode='a')
+
+
 def single_compress(config, args):
     """
-    Encode and decode a single image using a pre-trained network
-    Args:
-    - config: Model configuration parameters
-    - args: Parsed arguments for inference
+    Function to run inference and compress input image
+
+    Input:
+    config : Configuration parameters as defined in config file
+    args   : Input arguments as parsed by argparse
+
     Output:
-    Image with original and reconstructed images, side by side
+    None (File saved in directory as per config file)
     """
-    start = time.time()
+
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
     assert (ckpt.model_checkpoint_path), 'Missing checkpoint file!'
 
@@ -68,36 +92,17 @@ def single_compress(config, args):
 
 
 def single_decompress(config, args):
-    # @staticmethod
-    # def load_inference(filenames, labels, batch_size, resize=(32,32)):
-
-    #     # Single image estimation over multiple stochastic forward passes
-
-    #     def _preprocess_inference(image_path, label, resize=(32,32)):
-    #         # Preprocess individual images during inference
-    #         image_path = tf.squeeze(image_path)
-    #         image = tf.image.decode_png(tf.read_file(image_path))
-    #         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    #         image = tf.image.per_image_standardization(image)
-    #         image = tf.image.resize_images(image, size=resize)
-
-    #         return image, label
-
-    #     dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
-    #     dataset = dataset.map(_preprocess_inference)
-    #     dataset = dataset.batch(batch_size)
-        
-    #     return dataset
-
-
     """
-    Decode a single image usign pre-trained network
-    Args
-    - config: Reference to the model configuration
-    - args: Parsed arguments for the decodding
-    Output: 
-    - Reconstructed image
+    Function to run inference and reconstruct image after decoding the compressed vector
+
+    Input:
+    config : Configuration parameters as defined in config file
+    args   : Input arguments as parsed by argparse
+
+    Output:
+    None (File saved in directory as per config file)
     """
+    
     start = time.time()
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
     assert (ckpt.model_checkpoint_path), 'Missing checkpoint file!'
@@ -141,26 +146,31 @@ def single_decompress(config, args):
 
     return
 
-
 def main(**kwargs):
     """
-    Script main, parses arguments and runs the inference on an image
-    Args:
-    - Arguments to be parsed and passed during inference
+    Function to parse arguments and run inference
+
+    Input:
+    Input arguments as parsed by argparse
+
     Output:
-    TODOs:
-    - Provide option to run decoding on compressed representation. 
-    - Provide argument option to specify locaiton to save compressed image (i.e. quantized feature map)
+    None (Run inference by calling appropriate function)
     """
+
     parser = argparse.ArgumentParser()
     parser.add_argument("-rl", "--restore_last", help="restore last saved model", action="store_true")
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
     parser.add_argument("-i", "--image_path", help="path to image to compress", type=str)
-    parser.add_argument("-c", "--compressed_path", help="path to image to compress", type=str)
+    parser.add_argument("-c", "--compressed_path", help="path to compressed file", type=str)
     parser.add_argument("-o", "--output_path", help="path to output image", type=str)
     args = parser.parse_args()
 
     # Launch training
+    args = parser.parse_args()
+
+    # if args.path:
+    #     generate_hdf(args.path)
+
     if args.image_path:
         single_compress(config_test, args)
     if args.compressed_path:

@@ -1,21 +1,44 @@
 #!/usr/bin/python3
+# Script to read input dataset
+# Code borrowed from Justin Tan (https://github.com/Justin-Tan/generative-compression) and modified as required
+
 import tensorflow as tf
-import numpy as np
 import pandas as pd
-from config import directories, image_properties
+from config import image_properties
 
 class Data(object):
 
     @staticmethod
-    def load_dataframe(filename, load_semantic_maps=False):
+    def load_dataframe(filename):
+        """
+        Function to build encoder architecture for encoding image (H,W,d) to latent feature map (H/16,W/16,C)
+        
+        Input:
+        filename : Input hdf5 file consisting of training dataset
+        
+        Output:
+        dataframe of paths to images dataset
+        """
 
         df = pd.read_hdf(filename, key='df').sample(frac=1).reset_index(drop=True)
         return df['path'].values
 
     @staticmethod
     def load_dataset(image_paths, batch_size, test=False, **kwargs):
+        """
+        Function to build encoder architecture for encoding image (H,W,d) to latent feature map (H/16,W/16,C)
+        
+        Input:
+        image_paths : Paths to input images
+        batch_size  : Batch size as per user defined config file
+        test        : Variable to check if test dataset
+        
+        Output:
+        dataset : Tensorflow dataset instance of the training/test dataset
+        """
 
         def _parser(image_path, semantic_map_path=None):
+            # parser function for dataset instance mapping from input dataframe consisting of image path to image tensor
             im = tf.image.decode_image(tf.read_file(image_path), channels=image_properties.depth)
             im = tf.image.convert_image_dtype(im, dtype=tf.float32)
             im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
@@ -31,26 +54,3 @@ class Data(object):
             dataset = dataset.repeat()
 
         return dataset
-
-
-    # @staticmethod
-    # def load_inference(filenames, labels, batch_size, resize=(32,32)):
-
-    #     # Single image estimation over multiple stochastic forward passes
-
-    #     def _preprocess_inference(image_path, label, resize=(32,32)):
-    #         # Preprocess individual images during inference
-    #         image_path = tf.squeeze(image_path)
-    #         image = tf.image.decode_png(tf.read_file(image_path))
-    #         image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    #         image = tf.image.per_image_standardization(image)
-    #         image = tf.image.resize_images(image, size=resize)
-
-    #         return image, label
-
-    #     dataset = tf.data.Dataset.from_tensor_slices((filenames, labels))
-    #     dataset = dataset.map(_preprocess_inference)
-    #     dataset = dataset.batch(batch_size)
-        
-    #     return dataset
-
