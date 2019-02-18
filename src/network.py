@@ -138,7 +138,7 @@ class Network(object):
             print("Decoder upsampled vector shape - ", ups.shape)
 
             ups = tf.pad(ups, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
-            ups = tf.layers.conv2d(ups, image_properties.depth, kernel_size=7, strides=1, padding='VALID')
+            ups = tf.layers.conv2d(ups, image_properties.DEPTH, kernel_size=7, strides=1, padding='VALID')
             print("Decoder upsampled vector shape - ", ups.shape)
             out = tf.nn.tanh(ups)
 

@@ -11,7 +11,7 @@ class Data(object):
     @staticmethod
     def load_dataframe(filename):
         """
-        Function to build encoder architecture for encoding image (H,W,d) to latent feature map (H/16,W/16,C)
+        Function to load dataframe from hdf file saved as per filename
         
         Input:
         filename : Input hdf5 file consisting of training dataset
@@ -26,7 +26,7 @@ class Data(object):
     @staticmethod
     def load_dataset(image_paths, batch_size, test=False, **kwargs):
         """
-        Function to build encoder architecture for encoding image (H,W,d) to latent feature map (H/16,W/16,C)
+        Function to initiate Tensorflow dataset instance using input images dataframe
         
         Input:
         image_paths : Paths to input images
@@ -37,12 +37,13 @@ class Data(object):
         dataset : Tensorflow dataset instance of the training/test dataset
         """
 
-        def _parser(image_path, semantic_map_path=None):
+        def _parser(image_path):
             # parser function for dataset instance mapping from input dataframe consisting of image path to image tensor
-            im = tf.image.decode_image(tf.read_file(image_path), channels=image_properties.depth)
+            im = tf.image.decode_image(tf.read_file(image_path), channels=image_properties.DEPTH)
             im = tf.image.convert_image_dtype(im, dtype=tf.float32)
-            im = 2 * im - 1 # [0,1] -> [-1,1] (tanh range)
-            im.set_shape([image_properties.height,image_properties.width,image_properties.depth])
+            # Convert from [0,1] domain to [-1,1] domain
+            im = 2 * im - 1
+            im.set_shape([image_properties.HEIGHT,image_properties.WIDTH,image_properties.DEPTH])
             return im
 
         dataset = tf.data.Dataset.from_tensor_slices(image_paths)

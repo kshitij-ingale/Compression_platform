@@ -3,7 +3,6 @@
 
 import tensorflow as tf
 from tensorflow.keras.applications.vgg19 import VGG19
-from config import image_properties
 
 class Perceptual(object):
 

@@ -57,7 +57,7 @@ class Model():
         print('Real image shape:', self.example.get_shape().as_list())
         print('Reconstruction shape:', self.reconstruction.get_shape().as_list())
 
-        # If model is to be used for inference, model instance is returned
+        # Inference model developed till this point in graph
         if evaluate:
             return
 
@@ -91,7 +91,7 @@ class Model():
                 self.D_loss += tf.reduce_mean(tf.square(D_Gz2)) + tf.reduce_mean(tf.square(D_Gz4))
 
         # Pixel based loss function
-        distortion_penalty = config.lambda_X * tf.losses.mean_squared_error(self.example, self.reconstruction)
+        distortion_penalty = config.distortion_coeff * tf.losses.mean_squared_error(self.example, self.reconstruction)
         self.G_loss += distortion_penalty
         
         # Perceptual loss based on VGG network features
@@ -99,7 +99,7 @@ class Model():
         perceptual_loss = config.perceptual_coeff * per_loss.get_perceptual_loss(self.example, self.reconstruction)
         self.G_loss += perceptual_loss
         
-        # Feature matching loss for multiscale discriminator
+        # Feature matching loss using downsampled images
         if config.use_feature_matching_loss:
             D_x_layers, D_Gz_layers = [j for i in Dk_x for j in i], [j for i in Dk_Gz for j in i]
             feature_matching_loss = tf.reduce_sum([tf.reduce_mean(tf.abs(Dkx-Dkz)) for Dkx, Dkz in zip(D_x_layers, D_Gz_layers)])

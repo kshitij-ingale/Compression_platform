@@ -1,74 +1,40 @@
 #!/usr/bin/env python3
 
 class image_properties(object):
-    depth = 3
-    height = 256
-    width = 256
-    compressed_dims = [1, height/16, width/16, 10]
+    DEPTH = 3                                       # Dimension of the input image to network corresponding to channels
+    HEIGHT = 256                                    # Dimension of the input image to network corresponding to height
+    WIDTH = 256                                     # Dimension of the input image to network corresponding to width
+    compressed_dims = [1, HEIGHT/16, WIDTH/16, 10]  # Dimension of the compressed quantized vector
     
 class config_train(object):
-    train_fraction = 0.9
-    mode = 'gan-train'
-    num_epochs = 40
-    batch_size = 4
-    ema_decay = 0.999
-    G_learning_rate = 2e-4
-    D_learning_rate = 2e-4
-    lr_decay_rate = 2e-5
-    momentum = 0.9
-    weight_decay = 5e-4
-    noise_dim = 128
-    optimizer = 'adam'
-    kernel_size = 3
-    diagnostic_steps = 50
+    
+    train_fraction = 0.9                # Train-test split fraction for dataset
+    mode = 'gan-train'                  # Mode specify train/test function
+    num_epochs = 40                     # Number of epochs for training
+    batch_size = 4                      # Batch size for training
+    ema_decay = 0.999                   # Decay factor for exponential moving average term for parameters
+    G_learning_rate = 2e-4              # Learning rate for generator network
+    D_learning_rate = 2e-4              # Learning rate for discriminator network
+    diagnostic_steps = 50               # Steps after which model performance is to be evaluated
+    
+# Compression factors
+    perceptual_coeff = 0.2              # Coefficient for perceptual loss
+    distortion_coeff = 12               # Coefficient for distortion loss
+    channel_bottleneck = 10             # Compression bottleneck
+    use_vanilla_GAN = False             # Check if vanilla-GAN loss function is to be used
+    use_feature_matching_loss = True    # Check if feature matching loss is to be used (Loss function considering different downsampled images)
+    multiscale = True                   # Check if multiscale discriminator is to be used
+    feature_matching_weight = 10        # Coefficient for feature matching loss
 
-    perceptual_coeff = 0.2
-
-    # Compression
-    lambda_X = 12   # Distortion Penalty
-    channel_bottleneck = 10
-    sample_noise = False
-    use_vanilla_GAN = False
-    use_feature_matching_loss = True
-    upsample_dim = 256
-    multiscale = True
-    feature_matching_weight = 10
-    use_conditional_GAN = False
-
-class config_test(object):
-    mode = 'gan-test'
+class config_test(config_train):
+    mode = 'gan-test'                   # Mode specify train/test function
     num_epochs = 512
     batch_size = 1
-    ema_decay = 0.999
-    G_learning_rate = 2e-4
-    D_learning_rate = 2e-4
-    lr_decay_rate = 2e-5
-    momentum = 0.9
-    weight_decay = 5e-4
-    noise_dim = 128
-    optimizer = 'adam'
-    kernel_size = 3
-    diagnostic_steps = 256
-
-    perceptual_coeff = 0.2
-
-    # Compression
-    lambda_X = 12
-    channel_bottleneck = 10
-    sample_noise = False
-    use_vanilla_GAN = False
-    use_feature_matching_loss = True
-    upsample_dim = 256
-    multiscale = True
-    feature_matching_weight = 10
-    use_conditional_GAN = False
 
 class directories(object):
-    train = 'data/paths_train.d5'
-    test = 'data/paths_test.d5'
-    val = 'data/paths_validation.d5'
-    tensorboard = 'tensorboard'
-    checkpoints = 'checkpoints'
-    checkpoints_best = 'checkpoints/best'
-    samples = 'output/'
-
+    train = 'data/paths_train.d5'           # Directory for training dataframe
+    test = 'data/paths_test.d5'             # Directory for test dataframe
+    tensorboard = 'tensorboard'             # Directory for tensorboard summary
+    checkpoints = 'checkpoints'             # Directory for storing checkpoints
+    checkpoints_best = 'checkpoints/best'   # Directory for storing checkpoints corresponding to minimum loss values
+    samples = 'output/'                     # Directory for output files

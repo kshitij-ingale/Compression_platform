@@ -84,7 +84,7 @@ class Utils(object):
         for im in [r,g]:
             im = ((im+1.0))/2  # [-1,1] -> [0,1]
             im = np.squeeze(im)
-            if image_properties.depth == 1:
+            if image_properties.DEPTH == 1:
                 im = im[:,:,]
             else:
                 im = im[:,:,:3]
@@ -136,7 +136,7 @@ class Utils(object):
         # Convert from [-1,1] domain to [0,1]
         im = ((g+1.0))/2
         im = np.squeeze(im)
-        if image_properties.depth == 1:
+        if image_properties.DEPTH == 1:
             im = im[:,:,]
         else:
             im = im[:,:,:3]

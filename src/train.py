@@ -33,6 +33,7 @@ def generate_hdf(path):
 
     abs_path = os.path.abspath(path)+'/'
     file_names = os.listdir(path)
+    
     if len(file_names)%config_train.batch_size!=0:
         while len(file_names)%config_train.batch_size!=0:
             file_names = file_names[:-1]
@@ -148,7 +149,6 @@ def main(**kwargs):
     parser = argparse.ArgumentParser()
     parser.add_argument("-rl", "--restore_last", help="restore last saved model", action="store_true")
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
-    parser.add_argument("-opt", "--optimizer", default="adam", help="Selected optimizer", type=str)
     parser.add_argument("-name", "--name", default="gan-train", help="Checkpoint/Tensorboard label")
     parser.add_argument("-path", "--path", default=None, help="Preprocessing Required",type=str)
     args = parser.parse_args()
