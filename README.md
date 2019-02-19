@@ -1,126 +1,42 @@
-# Insight_Project_Framework
-Framework for machine learning projects at Insight Data Science.
 
-## Motivation for this project format:
-- **Insight_Project_Framework** : Put all source code for production within structured directory
-- **tests** : Put all source code for testing in an easy to find location
-- **configs** : Enable modification of all preset variables within single directory (consisting of one or many config files for separate tasks)
-- **data** : Include example a small amount of data in the Github repository so tests can be run to validate installation
-- **build** : Include scripts that automate building of a standalone environment
-- **static** : Any images or content to include in the README or web framework if part of the pipeline
+# CompressGAN
+## Training framework for image compression using Generative Adversarial Networks Approach
+
+## Structure:
+- **checkpoints** : Directory for saving model checkpoints during training or inference
+- **data** : Directory for storing images to be compressed (example dataset provided in this directory)
+- **images** : Directory for storing images for observing results (example images provided in this directory)
+- **output** : Directory for storing output images, compressed files and comparisons with original images
+- **src** : Directory for all source code files
+- **tensorboard** : Directory for saving tensorboard summary
 
 ## Setup
-Clone repository and update python path
+Clone repository using the following command
 ```
-repo_name=Insight_Project_Framework # URL of your new repository
-username=mrubash1 # Username for your personal github account
-git clone https://github.com/$username/$repo_name
-cd $repo_name
-echo "export $repo_name=${PWD}" >> ~/.bash_profile
-echo "export PYTHONPATH=$repo_name/src:${PYTHONPATH}" >> ~/.bash_profile
-source ~/.bash_profile
-```
-Create new development branch and switch onto it
-```
-branch_name=dev-readme_requisites-20180905 # Name of development branch, of the form 'dev-feature_name-date_of_creation'}}
-git checkout -b $branch_name
+git clone https://github.com/kshitij-ingale/Compression_platform
 ```
 
-## Initial Commit
-Lets start with a blank slate: remove `.git` and re initialize the repo
-```
-cd $repo_name
-rm -rf .git   
-git init   
-git status
-```  
-You'll see a list of file, these are files that git doesn't recognize. At this point, feel free to change the directory names to match your project. i.e. change the parent directory Insight_Project_Framework and the project directory Insight_Project_Framework:
-Now commit these:
-```
-git add .
-git commit -m "Initial commit"
-git push origin $branch_name
-```
-
-## Requisites
-
-- List all packages and software needed to build the environment
-- This could include cloud command line tools (i.e. gsutil), package managers (i.e. conda), etc.
-
-#### Dependencies
-
-- [Streamlit](streamlit.io)
+## Requirements
+The codebase has some dependencies as specified in the requirements.txt, which can be used to install using pip or a new virtual environment can be created by providing the requirements file
 
 #### Installation
 To install the package above, pleae run:
 ```shell
-pip install -r requiremnts
+pip install -r requirements.txt
 ```
 
-## Build Environment
-- Include instructions of how to launch scripts in the build subfolder
-- Build scripts can include shell scripts or python setup.py files
-- The purpose of these scripts is to build a standalone environment, for running the code in this repository
-- The environment can be for local use, or for use in a cloud environment
-- If using for a cloud environment, commands could include CLI tools from a cloud provider (i.e. gsutil from Google Cloud Platform)
+## Compress single image
+- Model Inference can be done on a single image or a batch of images
+- For single image inference, download the pretrained model and run the following
 ```
-# Example
-
-# Step 1
-# Step 2
+python src/singlefile.py -r *checkpoint location* -i *input image* -o *output*
 ```
-
-## Configs
-- We recommond using either .yaml or .txt for your config files, not .json
-- **DO NOT STORE CREDENTIALS IN THE CONFIG DIRECTORY!!**
-- If credentials are needed, use environment variables or HashiCorp's [Vault](https://www.vaultproject.io/)
-
-
-## Test
-- Include instructions for how to run all tests after the software is installed
+- For multiple images,
 ```
-# Example
-
-# Step 1
-# Step 2
+python src/inference.py -r *model checkpoint location* -path *input images directory* -o *output directory*
 ```
-
-## Run Inference
-- Include instructions on how to run inference
-- i.e. image classification on a single image for a CNN deep learning project
+## Training model
+- The model can be trained by running the following
 ```
-# Example
-
-# Step 1
-# Step 2
-```
-
-## Build Model
-- Include instructions of how to build the model
-- This can be done either locally or on the cloud
-```
-# Example
-
-# Step 1
-# Step 2
-```
-
-## Serve Model
-- Include instructions of how to set up a REST or RPC endpoint
-- This is for running remote inference via a custom model
-```
-# Example
-
-# Step 1
-# Step 2
-```
-
-## Analysis
-- Include some form of EDA (exploratory data analysis)
-- And/or include benchmarking of the model and results
-```
-# Example
-
-# Step 1
-# Step 2
+python src/train.py -r *model checkpoint location* -path *input images directory*
 ```
