@@ -8,7 +8,8 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-from config import directories, image_properties
+from config import directories, input_attributes
+from arithmetic_encoder import arithmetic_encoder
 
 class Utils(object):
     
@@ -77,14 +78,16 @@ class Utils(object):
         real = model.example[0]
         gen = model.reconstruction[0]
         quantized_z = model.z
-        
+
+        asd = time.time()
         r, g, z = sess.run([real, gen, quantized_z], feed_dict={model.training_phase:True, model.handle: handle})
+        print("Time required is {}".format(time.time()-asd))
         
         images = []
         for im in [r,g]:
             im = ((im+1.0))/2  # [-1,1] -> [0,1]
             im = np.squeeze(im)
-            if image_properties.DEPTH == 1:
+            if input_attributes.DEPTH == 1:
                 im = im[:,:,]
             else:
                 im = im[:,:,:3]
@@ -102,8 +105,9 @@ class Utils(object):
         plt.imshow(comparison)
         plt.axis('off')
         if single_compress:
-            f.savefig(name, format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)            
-            write_compressed_file(z,name)
+            f.savefig(name+'comparison', format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)            
+            # write_compressed_file(z,name)
+            arithmetic_encoder.compress(z,name)
         else:
             f.savefig("{}/gan_compression_{}_epoch{}_step{}_comparison.pdf".format(directories.samples, name, epoch,
                 global_step), format='pdf', dpi=720, bbox_inches='tight', pad_inches=0)
@@ -129,14 +133,15 @@ class Utils(object):
         # reconstruction module from model
         recon = model.reconstruction
         # compressed vector as obtained from input file
-        quantized_z = read_compressed_file(input)
+        quantized_z = arithmetic_encoder.decompress(input)
+        quantized_z = quantized_z.reshape(input_attributes.compressed_dims)
         # Obtain reconstructed image 
-        g = sess.run( recon, feed_dict={model.z:quantized_z, model.training_phase:True, model.handle: handle})
+        g = sess.run(recon, feed_dict={model.z:quantized_z, model.training_phase:True, model.handle: handle})
 
         # Convert from [-1,1] domain to [0,1]
         im = ((g+1.0))/2
         im = np.squeeze(im)
-        if image_properties.DEPTH == 1:
+        if input_attributes.DEPTH == 1:
             im = im[:,:,]
         else:
             im = im[:,:,:3]
@@ -148,60 +153,5 @@ class Utils(object):
         plt.gcf().clear()
         plt.close(f)
 
-def write_compressed_file(data, out_file = 'compressed_x'):
-    """
-    Function to write quantized vector of image as a binary file
-    
-    Input:
-    data : Quantized vector of image
-    out_file : File name for binary file to be stored
-    
-    Output:
-    None (File saved in location)
-    """
-    
-    bitstring = ''            
-    for center in data.astype(int).flatten():
-        if center == 0:
-            bitstring+='00'
-        elif center == 1:
-            bitstring+='10'
-        elif center == 2:
-            bitstring+='01'
-        elif center == 3:
-            bitstring += '11'
-        else:
-            print('Error in encoding' )
-        
-    print('File size = ',len(bitstring))
-    with open(out_file+'.bin', 'w') as f:
-        f.write(bitstring)
 
-def read_compressed_file(input_file):
-    """
-    Function to write quantized vector of image as a binary file
-    
-    Input:
-    input_file : File name for binary file to be restored to reconstructed image
-    
-    Output:
-    Matrix containing quantized vector for reconstruction
-    """
 
-    with open(input_file, 'rb') as f:
-        data=str(f.read())
-    f.close()
-
-    comp = []
-    for i in range(0,len(data),2):
-        bit = data[i:i+2]
-        if bit == '00':
-            comp.append(0.)
-        elif bit == '10':
-            comp.append(1.)
-        elif bit == '01':
-            comp.append(2.)
-        elif bit == '11':
-            comp.append(3.)
-    im_mat = np.array(comp)
-    return im_mat.reshape(image_properties.compressed_dims)

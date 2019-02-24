@@ -92,7 +92,7 @@ def train(config, args):
                 new_saver.restore(sess, args.restore_path)
                 print('{} restored.'.format(args.restore_path))
 
-        sess.run(gan.test_iterator.initializer, feed_dict=feed_dict_test_init)
+        # sess.run(gan.test_iterator.initializer, feed_dict=feed_dict_test_init)
 
         for epoch in range(config.num_epochs):
 

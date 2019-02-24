@@ -4,7 +4,7 @@
 
 import tensorflow as tf
 from utils import Utils
-from config import image_properties
+from config import input_attributes
 
 #============================================================================================================================
 # Network class for architectures, convolutional, upsampling blocks used in the class at the end
@@ -55,7 +55,9 @@ class Network(object):
 
 
     @staticmethod
-    def quantizer(w, config, reuse=False, temperature=1, L=3, scope='image'):
+    # def quantizer(w, config, reuse=False, temperature=1, L=3, scope='image'):
+    def quantizer(w, config, reuse=False, temperature=1, scope='image'):
+        
         """
         Function to build quantizer architecture for quantizing feature vector to discrete levels 
         
@@ -64,7 +66,6 @@ class Network(object):
         config      : Configuration parameters
         reuse       : Reuse variable scope flag
         temperature : Damping factor of quantization
-        L           : Number of quantization centers
         scope       : Variable scope for the quantizer block
         
         Output:
@@ -72,10 +73,10 @@ class Network(object):
         """
         with tf.variable_scope('quantizer_{}'.format(scope, reuse=reuse)):
             # Quantization centers
-            centers = tf.cast(tf.range(-1,2), tf.float32)
+            centers = tf.cast(tf.range(-(config.quant_centers//2),(config.quant_centers//2)+1), tf.float32)
             
             # Quantize w to discrete levels as defined in centers
-            w_stack = tf.stack([w for _ in range(L)], axis=-1)
+            w_stack = tf.stack([w for _ in range(config.quant_centers)], axis=-1)
             w_hard = tf.cast(tf.argmin(tf.abs(w_stack - centers), axis=-1), tf.float32) + tf.reduce_min(centers)
 
             # Soft quantization part for w
@@ -138,7 +139,7 @@ class Network(object):
             print("Decoder upsampled vector shape - ", ups.shape)
 
             ups = tf.pad(ups, [[0, 0], [3, 3], [3, 3], [0, 0]], 'REFLECT')
-            ups = tf.layers.conv2d(ups, image_properties.DEPTH, kernel_size=7, strides=1, padding='VALID')
+            ups = tf.layers.conv2d(ups, input_attributes.DEPTH, kernel_size=7, strides=1, padding='VALID')
             print("Decoder upsampled vector shape - ", ups.shape)
             out = tf.nn.tanh(ups)
 

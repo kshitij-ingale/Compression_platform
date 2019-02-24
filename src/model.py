@@ -25,55 +25,12 @@ class Model():
         None (Function will be used to initiate model instance)
         """
 
-###############################################################################################################################
-        if evaluate:
-            print('Building computational graph')
-            self.G_global_step = tf.Variable(0, trainable=False)
-            self.D_global_step = tf.Variable(0, trainable=False)
-            self.handle = tf.placeholder(tf.string, shape=[])
-            self.training_phase = tf.placeholder(tf.bool)
-
-            # self.path_placeholder = tf.placeholder(paths.dtype, paths.shape)
-            self.test_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
-            
-            # Loading Dataset
-            # train_dataset = Data.load_dataset(self.path_placeholder, config.batch_size)
-            test_dataset = Data.load_dataset(self.test_path_placeholder, config.batch_size, test=True)
-
-            # Initiating iterators for traversing through dataset
-            self.iterator = tf.data.Iterator.from_string_handle(self.handle, test_dataset.output_types, test_dataset.output_shapes)
-            # self.train_iterator = train_dataset.make_initializable_iterator()
-            self.test_iterator = test_dataset.make_initializable_iterator()
-            
-            # ==========================================================================================================
-            # Encoding and decoding section
-            self.example = self.test_iterator.get_next()
-            with tf.variable_scope('generator'):
-                # Encode input image to obtain latent features map
-                self.feature_map = Network.encoder(self.example, config, self.training_phase, config.channel_bottleneck)
-                # Quantize latent feature map for lossy compression
-                self.z = Network.quantizer(self.feature_map, config)
-                # Reconstruct compressed image from quantized vector
-                self.reconstruction = Network.decoder(self.z, config, self.training_phase, C=config.channel_bottleneck)
-
-            print('Real image shape:', self.example.get_shape().as_list())
-            print('Reconstruction shape:', self.reconstruction.get_shape().as_list())
-
-        
-            return
-
-
-
-
-###############################################################################################################################
-
-
         print('Building computational graph')
         self.G_global_step = tf.Variable(0, trainable=False)
         self.D_global_step = tf.Variable(0, trainable=False)
         self.handle = tf.placeholder(tf.string, shape=[])
         self.training_phase = tf.placeholder(tf.bool)
-
+        
         self.path_placeholder = tf.placeholder(paths.dtype, paths.shape)
         self.test_path_placeholder = tf.placeholder(paths.dtype, paths.shape)
         
@@ -86,9 +43,14 @@ class Model():
         self.train_iterator = train_dataset.make_initializable_iterator()
         self.test_iterator = test_dataset.make_initializable_iterator()
         
-        # ==========================================================================================================
+        # =======================================================================================================================================
         # Encoding and decoding section
-        self.example = self.train_iterator.get_next()
+        
+        if evaluate:
+            self.example = self.test_iterator.get_next()
+        else:
+            self.example = self.train_iterator.get_next()
+
         with tf.variable_scope('generator'):
             # Encode input image to obtain latent features map
             self.feature_map = Network.encoder(self.example, config, self.training_phase, config.channel_bottleneck)
@@ -102,9 +64,10 @@ class Model():
 
         # Inference model developed till this point in graph
         if evaluate:
+            self.train_writer = tf.summary.FileWriter(os.path.join(directories.tensorboard, '{}_asd_{}'.format(name, time.strftime('%d-%m_%I:%M'))), graph=tf.get_default_graph())
             return
 
-        # ==========================================================================================================
+        # =======================================================================================================================================
         # Adding discriminator to graph
         if config.multiscale:
             D_x, D_x2, D_x4, *Dk_x = Network.multiscale_discriminator(self.example, config, self.training_phase, 
@@ -115,8 +78,8 @@ class Model():
             D_x = Network.discriminator(self.example, config, self.training_phase, use_sigmoid=config.use_vanilla_GAN)
             D_Gz = Network.discriminator(self.reconstruction, config, self.training_phase, use_sigmoid=config.use_vanilla_GAN, reuse=True)
          
-        # ==========================================================================================================
-        # Loss function for GAN based models
+        # =======================================================================================================================================
+        # Loss functions
         if config.use_vanilla_GAN is True:
             D_loss_real = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=D_x,
                 labels=tf.ones_like(D_x)))
@@ -148,7 +111,7 @@ class Model():
             feature_matching_loss = tf.reduce_sum([tf.reduce_mean(tf.abs(Dkx-Dkz)) for Dkx, Dkz in zip(D_x_layers, D_Gz_layers)])
             self.G_loss += config.feature_matching_weight * feature_matching_loss
 
-        # ==========================================================================================================
+        # =======================================================================================================================================
         # Setting optimizer for the loss functions
         G_opt = tf.train.AdamOptimizer(learning_rate=config.G_learning_rate, beta1=0.5)
         D_opt = tf.train.AdamOptimizer(learning_rate=config.D_learning_rate, beta1=0.5)

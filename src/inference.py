@@ -18,7 +18,7 @@ from config import config_test, directories
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 
-def generate_hdf(path):
+def generate_df(path):
     """
     Function to obtain hdf file given the input images directory
 
@@ -28,12 +28,15 @@ def generate_hdf(path):
     Output:
     None (File saved in directory as per config file)
     """
-
+    if path.endswith('jpg'):
+        return np.array([os.path.abspath(path)])
     abs_path = os.path.abspath(path)+'/'
-    file_names = os.listdir(path)    
+    file_names = os.listdir(path)
     file_loc = [abs_path + x for x in file_names]
-    test = pd.DataFrame({'path':file_loc})
-    test.to_hdf(directories.infer, 'df', table=True, mode='a')
+    # test = pd.DataFrame({'path':file_loc})
+    # test.to_hdf(directories.infer, 'df', table=True, mode='a')
+
+    return np.array(file_loc)
 
 
 def infer_compress(config, args):
@@ -51,7 +54,8 @@ def infer_compress(config, args):
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
     assert (ckpt.model_checkpoint_path), 'Missing checkpoint file!'
 
-    test_paths = Data.load_dataframe(directories.infer)
+    # test_paths = Data.load_dataframe(directories.infer)
+    test_paths = generate_df(args.path)
     gan = Model(config, test_paths, name='single_compress', evaluate=True)
     saver = tf.train.Saver()
     feed_dict_init = {gan.test_path_placeholder: test_paths}
@@ -72,21 +76,25 @@ def infer_compress(config, args):
                 print('Previous checkpoint {} restored.'.format(args.restore_path))
 
         sess.run(gan.test_iterator.initializer, feed_dict=feed_dict_init)
-        i=0
+        i = 0
+        if args.path.endswith('jpg'):
+            file_names = [args.path]
+        else:
+            file_names = os.listdir(args.path)
         while True:
             try:
-
+                print("Currently processing {}".format(file_names[i][:-4]))
                 eval_dict = {gan.training_phase: False, gan.handle: handle}
 
                 if args.output_path is None:
                     output = os.path.splitext(os.path.basename(args.path))
-                    save_path = os.path.join(directories.samples, '{}_compressed'.format(i))
+                    save_path = os.path.join(directories.samples, '{}_compressed'.format(file_names[i][:-4]))
                 else:
                     save_path = args.output_path
                 Utils.single_plot(0, 0, sess, gan, handle, save_path, config, single_compress=True)
-                print(file_list[i])
                 i += 1
-            except tf.errors.OutOfRangeError:
+
+            except (tf.errors.OutOfRangeError, IndexError):
                 print('Inference completed')
                 break
     return
@@ -161,7 +169,6 @@ def main(**kwargs):
     parser = argparse.ArgumentParser()
     parser.add_argument("-rl", "--restore_last", help="restore last saved model", action="store_true")
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
-    parser.add_argument("-i", "--image_path", help="path to image to compress", type=str)
     parser.add_argument("-c", "--compressed_path", help="path to compressed file", type=str)
     parser.add_argument("-o", "--output_path", help="path to output image", type=str)
     parser.add_argument("-path", "--path", default=None, help="Directory to multiple input images",type=str)
@@ -171,12 +178,9 @@ def main(**kwargs):
     args = parser.parse_args()
 
     if args.path:
-        generate_hdf(args.path)
-
-    # if args.image_path:
-    infer_compress(config_test, args)
-    # if args.compressed_path:
-    #     single_decompress(config_test, args)
+        infer_compress(config_test, args)
+    if args.compressed_path:
+        single_decompress(config_test, args)
 
 if __name__ == '__main__':
     main()

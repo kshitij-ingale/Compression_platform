@@ -4,7 +4,7 @@
 
 import tensorflow as tf
 import pandas as pd
-from config import image_properties
+from config import input_attributes
 
 class Data(object):
 
@@ -39,19 +39,18 @@ class Data(object):
 
         def _parser(image_path):
             # parser function for dataset instance mapping from input dataframe consisting of image path to image tensor
-            im = tf.image.decode_image(tf.read_file(image_path), channels=image_properties.DEPTH)
+            im = tf.image.decode_image(tf.read_file(image_path), channels=input_attributes.DEPTH)
             im = tf.image.convert_image_dtype(im, dtype=tf.float32)
             # Convert from [0,1] domain to [-1,1] domain
             im = 2 * im - 1
-            im.set_shape([image_properties.HEIGHT,image_properties.WIDTH,image_properties.DEPTH])
+            im.set_shape([input_attributes.HEIGHT,input_attributes.WIDTH,input_attributes.DEPTH])
             return im
 
         dataset = tf.data.Dataset.from_tensor_slices(image_paths)
         dataset = dataset.map(_parser)
-        dataset = dataset.shuffle(buffer_size=8)
-        dataset = dataset.batch(batch_size)
-
         # if test:
-        #     dataset = dataset.repeat()
+        #     return dataset
+        # dataset = dataset.shuffle(buffer_size=8)
+        dataset = dataset.batch(batch_size)
 
         return dataset

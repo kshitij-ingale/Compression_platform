@@ -28,10 +28,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-data/*
-tensorboard/*
-output/*
-checkpoints/*
 src/__pycache__/
 
 # PyInstaller
