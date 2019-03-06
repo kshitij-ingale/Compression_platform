@@ -50,32 +50,29 @@ def infer_compress(config, args):
     Output:
     None (File saved in directory as per config file)
     """
-
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
-    assert (ckpt.model_checkpoint_path), 'Missing checkpoint file!'
+    assert (ckpt.model_checkpoint_path), 'Provide checkpoint file for inference'
 
     # test_paths = Data.load_dataframe(directories.infer)
     test_paths = generate_df(args.path)
-    gan = Model(config, test_paths, name='single_compress', evaluate=True)
+    comp_model = Model(config, test_paths, name='infer_compress', evaluate=True)
     saver = tf.train.Saver()
-    feed_dict_init = {gan.test_path_placeholder: test_paths}
+    feed_dict_init = {comp_model.test_path_placeholder: test_paths}
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)) as sess:
-        # Initialize variables
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        handle = sess.run(gan.test_iterator.string_handle())
+        handle = sess.run(comp_model.test_iterator.string_handle())
 
         if args.restore_last and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
             print('Most recent {} restored.'.format(ckpt.model_checkpoint_path))
         else:
             if args.restore_path:
-                new_saver = tf.train.import_meta_graph('{}.meta'.format(args.restore_path))
-                new_saver.restore(sess, args.restore_path)
+                saver.restore(sess, args.restore_path)
                 print('Previous checkpoint {} restored.'.format(args.restore_path))
 
-        sess.run(gan.test_iterator.initializer, feed_dict=feed_dict_init)
+        sess.run(comp_model.test_iterator.initializer, feed_dict=feed_dict_init)
         i = 0
         if args.path.endswith('jpg'):
             file_names = [args.path]
@@ -84,14 +81,14 @@ def infer_compress(config, args):
         while True:
             try:
                 print("Currently processing {}".format(file_names[i][:-4]))
-                eval_dict = {gan.training_phase: False, gan.handle: handle}
+                eval_dict = {comp_model.training_phase: False, comp_model.handle: handle}
 
                 if args.output_path is None:
                     output = os.path.splitext(os.path.basename(args.path))
                     save_path = os.path.join(directories.samples, '{}_compressed'.format(file_names[i][:-4]))
                 else:
                     save_path = args.output_path
-                Utils.single_plot(0, 0, sess, gan, handle, save_path, config, single_compress=True)
+                Utils.single_plot(0, 0, sess, comp_model, handle, save_path, config, single_compress=True)
                 i += 1
 
             except (tf.errors.OutOfRangeError, IndexError):
@@ -100,7 +97,7 @@ def infer_compress(config, args):
     return
 
 
-def single_decompress(config, args):
+def infer_decompress(config, args):
     """
     Function to run inference and reconstruct image after decoding the compressed vector
 
@@ -112,22 +109,20 @@ def single_decompress(config, args):
     None (File saved in directory as per config file)
     """
     
-    start = time.time()
     ckpt = tf.train.get_checkpoint_state(directories.checkpoints)
-    assert (ckpt.model_checkpoint_path), 'Missing checkpoint file!'
-    
+    assert (ckpt.model_checkpoint_path), 'Provide checkpoint file for inference'
 
     paths = np.array([args.compressed_path])
-    gan = Model(config, paths, name='single_decompress', evaluate=True)
+    comp_model = Model(config, paths, name='infer_decompress', evaluate=True)
     saver = tf.train.Saver()
     
-    feed_dict_init = {gan.path_placeholder: paths}
+    feed_dict_init = {comp_model.path_placeholder: paths}
     
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)) as sess:
-        # Initialize variables
+
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        handle = sess.run(gan.train_iterator.string_handle())
+        handle = sess.run(comp_model.train_iterator.string_handle())
 
         if args.restore_last and ckpt.model_checkpoint_path:
             saver.restore(sess, ckpt.model_checkpoint_path)
@@ -138,9 +133,9 @@ def single_decompress(config, args):
                 new_saver.restore(sess, args.restore_path)
                 print('Previous checkpoint {} restored.'.format(args.restore_path))
         
-        sess.run(gan.train_iterator.initializer, feed_dict=feed_dict_init)
+        sess.run(comp_model.train_iterator.initializer, feed_dict=feed_dict_init)
         
-        eval_dict = {gan.training_phase: False, gan.handle: handle}
+        eval_dict = {comp_model.training_phase: False, comp_model.handle: handle}
         
         assert( args.compressed_path is not None), 'Input has not been specified'
         
@@ -149,9 +144,9 @@ def single_decompress(config, args):
             save_path = os.path.join(directories.samples, '{}_compressed.pdf'.format(output[0]))
         else:
             save_path = args.output_path
-        Utils.decode(sess, gan, handle, args.compressed_path, save_path, config)
+        Utils.decode(sess, comp_model, handle, args.compressed_path, save_path, config)
 
-        print('Reconstruction saved to', save_path)
+        print('Reconstructed image saved to', save_path)
 
     return
 
@@ -180,7 +175,7 @@ def main(**kwargs):
     if args.path:
         infer_compress(config_test, args)
     if args.compressed_path:
-        single_decompress(config_test, args)
+        infer_decompress(config_test, args)
 
 if __name__ == '__main__':
     main()

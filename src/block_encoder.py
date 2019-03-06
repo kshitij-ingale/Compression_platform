@@ -26,7 +26,7 @@ class block_encoder(object):
             print('Error in encoding' )
         
     print('File size = ',len(bitstring))
-    with open(out_file+'.bin', 'w') as f:
+    with open(out_file+'.bin', 'wb') as f:
         f.write(bitstring)
 
     def decompress(input_file):

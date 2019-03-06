@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-# Script to train the GAN based image compression model
+# Script to train the comp_model based image compression model
 # Code borrowed from Justin Tan (https://github.com/Justin-Tan/generative-compression) and modified as required
 
 import tensorflow as tf
@@ -68,18 +68,18 @@ def train(config, args):
     test_paths = Data.load_dataframe(directories.test)
 
     # Build computational graph of the model through model instance
-    gan = Model(config, paths, name=args.name)
+    comp_model = Model(config, paths, name=args.name)
     
     saver = tf.train.Saver()
     # Generate feed dictionary for Tensorflow session
-    feed_dict_test_init = {gan.test_path_placeholder: test_paths}
-    feed_dict_train_init = {gan.path_placeholder: paths}
+    feed_dict_test_init = {comp_model.test_path_placeholder: test_paths}
+    feed_dict_train_init = {comp_model.path_placeholder: paths}
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)) as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        train_handle = sess.run(gan.train_iterator.string_handle())
-        test_handle = sess.run(gan.test_iterator.string_handle())
+        train_handle = sess.run(comp_model.train_iterator.string_handle())
+        test_handle = sess.run(comp_model.test_iterator.string_handle())
 
         if args.restore_last and ckpt.model_checkpoint_path:
             # Continue training saved model
@@ -92,31 +92,28 @@ def train(config, args):
                 new_saver.restore(sess, args.restore_path)
                 print('{} restored.'.format(args.restore_path))
 
-        # sess.run(gan.test_iterator.initializer, feed_dict=feed_dict_test_init)
-
         for epoch in range(config.num_epochs):
 
-            sess.run(gan.train_iterator.initializer, feed_dict=feed_dict_train_init)
+            sess.run(comp_model.train_iterator.initializer, feed_dict=feed_dict_train_init)
 
             # Evaluate model performance
-            G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
+            G_loss_best, D_loss_best = Utils.run_diagnostics(comp_model, config, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
                     
             while True:
                 try:
                     # Update generator
-                    feed_dict = {gan.training_phase: True, gan.handle: train_handle}
-                    summary,_=sess.run([gan.merge_op,gan.G_train_op], feed_dict=feed_dict)
-                    gan.train_writer.add_summary(summary, epoch)
+                    feed_dict = {comp_model.training_phase: True, comp_model.handle: train_handle}
+                    summary,_=sess.run([comp_model.merge_op,comp_model.G_train_op], feed_dict=feed_dict)
+                    comp_model.train_writer.add_summary(summary, epoch)
 
-                    summary,step, _ = sess.run([gan.merge_op,gan.D_global_step, gan.D_train_op], feed_dict=feed_dict)
-                    gan.train_writer.add_summary(summary, step)
+                    summary,step, _ = sess.run([comp_model.merge_op,comp_model.D_global_step, comp_model.D_train_op], feed_dict=feed_dict)
+                    comp_model.train_writer.add_summary(summary, step)
                     
                     # Evaluate model performance during an epoch after steps specified in config file
                     if step % config.diagnostic_steps == 0:
-                        G_loss_best, D_loss_best = Utils.run_diagnostics(gan, config, directories, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
-                        Utils.single_plot(epoch, step, sess, gan, train_handle, args.name, config)
+                        G_loss_best, D_loss_best = Utils.run_diagnostics(comp_model, config, sess, saver, train_handle, start_time, epoch, args.name, G_loss_best, D_loss_best)
+                        Utils.single_plot(epoch, step, sess, comp_model, train_handle, args.name, config)
                         
-
                 except tf.errors.OutOfRangeError:
                     print('End of epoch!')
                     break
@@ -131,9 +128,7 @@ def train(config, args):
                 save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_epoch{}.ckpt'.format(args.name, epoch)), global_step=epoch)
                 print('Graph saved to file: {}'.format(save_path))
 
-        save_path = saver.save(sess, os.path.join(directories.checkpoints,
-                               '{}_end.ckpt'.format(args.name)),
-                               global_step=epoch)
+        save_path = saver.save(sess, os.path.join(directories.checkpoints, '{}_end.ckpt'.format(args.name)), global_step=epoch)
 
     print("Training Complete. Model saved to file: {} Time elapsed: {:.3f} s".format(save_path, time.time()-start_time))
 
@@ -151,7 +146,7 @@ def main(**kwargs):
     parser = argparse.ArgumentParser()
     parser.add_argument("-rl", "--restore_last", help="restore last saved model", action="store_true")
     parser.add_argument("-r", "--restore_path", help="path to model to be restored", type=str)
-    parser.add_argument("-name", "--name", default="gan-train", help="Checkpoint/Tensorboard label")
+    parser.add_argument("-name", "--name", default="comp_model-train", help="Checkpoint/Tensorboard label")
     parser.add_argument("-path", "--path", default=None, help="Directory to input images",type=str)
     args = parser.parse_args()
 

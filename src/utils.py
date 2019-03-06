@@ -79,9 +79,9 @@ class Utils(object):
         gen = model.reconstruction[0]
         quantized_z = model.z
 
-        asd = time.time()
+        # t0 = time.time()
         r, g, z = sess.run([real, gen, quantized_z], feed_dict={model.training_phase:True, model.handle: handle})
-        print("Time required is {}".format(time.time()-asd))
+        # print("Time required for inference is {}".format(time.time()-t0))
         
         images = []
         for im in [r,g]:

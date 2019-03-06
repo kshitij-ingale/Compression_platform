@@ -55,7 +55,6 @@ class Network(object):
 
 
     @staticmethod
-    # def quantizer(w, config, reuse=False, temperature=1, L=3, scope='image'):
     def quantizer(w, config, reuse=False, temperature=1, scope='image'):
         
         """

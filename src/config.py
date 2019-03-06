@@ -33,9 +33,9 @@ class input_attributes(object):
     compressed_dims = [1, int(HEIGHT/16), int(WIDTH/16), config_train.channel_bottleneck]   # Dimension of the compressed quantized vector
 
 class directories(object):
-    train = 'data/paths_train'           # Directory for training dataframe
-    test = 'data/paths_test'             # Directory for test dataframe
+    train = 'data/paths_train'              # Directory for training dataframe
+    test = 'data/paths_test'                # Directory for test dataframe
     tensorboard = 'tensorboard'             # Directory for tensorboard summary
     checkpoints = 'checkpoints'             # Directory for storing checkpoints
     checkpoints_best = 'checkpoints/best'   # Directory for storing checkpoints corresponding to minimum loss values
-    samples = 'output/'                     # Directory for output files
+    samples = 'output'                      # Directory for output files

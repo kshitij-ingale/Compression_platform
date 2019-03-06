@@ -51,6 +51,7 @@ class Model():
         else:
             self.example = self.train_iterator.get_next()
 
+        # with tf.variable_scope('generator',reuse=tf.AUTO_REUSE):
         with tf.variable_scope('generator'):
             # Encode input image to obtain latent features map
             self.feature_map = Network.encoder(self.example, config, self.training_phase, config.channel_bottleneck)
@@ -64,7 +65,6 @@ class Model():
 
         # Inference model developed till this point in graph
         if evaluate:
-            self.train_writer = tf.summary.FileWriter(os.path.join(directories.tensorboard, '{}_asd_{}'.format(name, time.strftime('%d-%m_%I:%M'))), graph=tf.get_default_graph())
             return
 
         # =======================================================================================================================================
@@ -118,6 +118,7 @@ class Model():
 
         # Compiling loss function to minimize loss
         def scope_variables(name):
+            # with tf.variable_scope(name,reuse=tf.AUTO_REUSE):
             with tf.variable_scope(name):
                 return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=tf.get_variable_scope().name)
 
@@ -141,7 +142,7 @@ class Model():
         with tf.control_dependencies(D_update_ops+[self.D_opt_op]):
             self.D_train_op = tf.group(D_maintain_averages_op)
 
-        # ==========================================================================================================
+        # =======================================================================================================================================
         # Tensorboard summary parameters
         # Loss terms for tensorboard summary
         tf.summary.scalar('generator_loss', self.G_loss)
