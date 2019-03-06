@@ -54,3 +54,4 @@ python src/train.py -r *model checkpoint location* -path *input images directory
 
 ## Results:
 
+![](https://github.com/kshitij-ingale/Compression_platform/blob/master/results/results.gif)
