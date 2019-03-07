@@ -1,9 +1,21 @@
+#!/usr/bin/python3
+# Script for adaptive arithmetic encoding
+
 import arithmeticcoding
 import pickle
 
 class arithmetic_encoder(object):
 
     def compress(quantized, output_file):
+        """
+        Function to load d
+        
+        Input:
+        filename : Input hdf5 file consisting of training dataset
+        
+        Output:
+        dataframe of paths to images dataset
+        """
         data = pickle.dumps(quantized)
         with open(output_file, "wb") as file:
             bitout = arithmeticcoding.BitOutputStream(file)

@@ -1,16 +1,8 @@
-# 
-# Reference arithmetic coding
-# Copyright (c) Project Nayuki
-# 
-# https://www.nayuki.io/page/reference-arithmetic-coding
-# https://github.com/nayuki/Reference-arithmetic-coding
-# 
+#!/usr/bin/python3
+# Script for arithmetic encoding supporting classes
+# The arithmetic encoding code borrowed from Project Nayuki (https://www.nayuki.io/page/reference-arithmetic-coding) and modified as required 
+# for the image compression code
 
-import sys
-
-# ---- Arithmetic coding core classes ----
-
-# Provides the state and behaviors that arithmetic coding encoders and decoders share.
 class ArithmeticCoderBase(object):
     
     # Constructs an arithmetic coder, which initializes the code range.
