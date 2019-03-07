@@ -36,6 +36,7 @@ Another inference can be decompressing binary file consisting of quantized laten
 ```
 python src/inference.py -r *model checkpoint location* -c *binary file* -o *output directory*
 ```
+The checkpoint file for model trained on faces data is available at this [link](https://drive.google.com/open?id=1P4QRMEhAe-NMmf-_-KzR6Yl3_afCk3qq)
 
 ## Training model
 The model configuration file config.py determines the parameters for the compression, input image attributes and model characteristics. If preprocessing is required, preprocess.py can be used (currently it resizes input image to dimensions indicated by input attributes in config.py). The model input is in the form of hdf5 file consisting of image paths under label 'path'. This can be created by train.py by providing image directory to path argument of train.py. Finally, the model can be trained using the following command
