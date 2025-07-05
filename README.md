@@ -53,6 +53,3 @@ python src/train.py -r *model checkpoint location* -path *input images directory
 
 - Another experiment around encoding techniques for latent factors was considered. Initially, block encoding technique was used to encode the quantized latent vector, however, it was observed adaptive arithmetic encoding technique provided better compression with file size decreasing by around 70%
 
-## Results:
-
-![](https://github.com/kshitij-ingale/Compression_platform/blob/master/results/results.gif)
